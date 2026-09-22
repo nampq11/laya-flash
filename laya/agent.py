@@ -71,7 +71,6 @@ def _verify_compatibility(model: torch.nn.Module, cfg: Dict, weights: Dict[str, 
             )
 
     # 3. Check for parameter shape mismatches
-    model_sd = model.state_dict()
     shape_mismatches = []
     missing_keys = []
 

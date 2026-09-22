@@ -13,9 +13,9 @@ import torch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from transformers import AutoModel, BertConfig, BertModel, PreTrainedTokenizerFast
 from tokenizers import Tokenizer
 from tokenizers.models import WordLevel
+from transformers import AutoModel, BertConfig, BertModel, PreTrainedTokenizerFast
 
 from laya.backbones import LayaBackbone, as_backbone, backbone_hidden_size, hidden_states_of, lfm2_backbone
 from laya.common import DecisionModel, build_model, build_sequence

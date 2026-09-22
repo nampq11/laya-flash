@@ -3,8 +3,8 @@
 from .agent import Agent, RLAgent, load
 from .backbones import LayaBackbone, as_backbone, lfm2_backbone
 from .common import (
-    QTYPES,
     QTYPE_NAMES,
+    QTYPES,
     confidence_from_probs,
     ece_score,
     proper_reward,

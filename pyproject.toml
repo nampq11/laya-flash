@@ -41,6 +41,18 @@ lfm2 = ["transformers>=4.55.0"]
 # assets/, research/ and notebooks/ sit in the root, so auto-discovery bails out.
 packages = ["laya"]
 
+[tool.ruff]
+# Matches the wide render/comment style the codebase was written against.
+line-length = 120
+# laya/, tests/ and setup.py; research/ and notebooks/ are exploratory and untracked by CI.
+include = ["laya/*.py", "tests/*.py", "setup.py"]
+
+[tool.ruff.lint]
+# Full pycodestyle errors + pyflakes + import sorting. Deliberately not the
+# modernization/simplification families: the codebase targets old transformers
+# floors (py3.10, transformers 4.48) where UP-style rewrites break compatibility.
+select = ["E4", "E7", "E9", "F", "I"]
+
 [project.urls]
 Homepage = "https://huggingface.co/convaiinnovations/laya"
 Demo = "https://huggingface.co/spaces/convaiinnovations/laya-demo"

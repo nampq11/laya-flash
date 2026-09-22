@@ -98,7 +98,7 @@ ok("multilingual billing intent >= 6/8", correct >= 6, "got %d/8" % correct)
 
 # ---------------------------------------------------------------- 3. English checkpoint contrast
 head("3. English checkpoint on the same non-English inputs (why routing matters)")
-ml_only = {l: t for l, t in BILLING if l in ("hindi", "japanese", "chinese", "russian")}
+ml_only = {lang: t for lang, t in BILLING if lang in ("hindi", "japanese", "chinese", "russian")}
 del ml
 en = laya.load(LOCAL["english"], device=DEVICE)
 en_correct = 0

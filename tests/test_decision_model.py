@@ -6,6 +6,7 @@ real checkpoint on disk.
 """
 import os
 import sys
+
 import torch
 from transformers import AutoConfig, AutoModel
 

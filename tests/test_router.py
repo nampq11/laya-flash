@@ -1,6 +1,6 @@
 """Routing and language-detection tests. No model weights are loaded: `Router.route` is pure."""
-import sys
 import os
+import sys
 import threading
 import time as _time
 
@@ -12,8 +12,8 @@ from laya.router import (  # noqa: E402
     BUNDLE_REPO,
     DEFAULT_MODELS,
     STANDALONE_MODELS,
-    _repo_str,
     Router,
+    _repo_str,
     match_typed_decisions_workflow,
     normalise_name,
 )
@@ -271,16 +271,21 @@ def _load_stub(rr, name):
 
 
 rr = stubbed_router(1)
-rr.load("english"); rr.load("multilingual")
+rr.load("english")
+rr.load("multilingual")
 check("lru/cap 1 keeps newest", rr.loaded, ["multilingual"])
 check("lru/cap 1 agents match order", sorted(rr._agents), ["multilingual"])
 
 rr = stubbed_router(2)
-rr.load("english"); rr.load("multilingual"); rr.load("typed-decisions")
+rr.load("english")
+rr.load("multilingual")
+rr.load("typed-decisions")
 check("lru/cap 2 evicts oldest", rr.loaded, ["multilingual", "typed-decisions"])
 
 rr = stubbed_router(2)
-rr.load("english"); rr.load("multilingual"); rr.load("english")   # touch english
+rr.load("english")
+rr.load("multilingual")
+rr.load("english")   # touch english
 rr.load("typed-decisions")
 check("lru/touch protects", sorted(rr.loaded), ["english", "typed-decisions"])
 

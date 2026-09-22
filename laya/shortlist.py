@@ -20,7 +20,6 @@ from typing import Any, Callable, Dict, List, Optional, Sequence
 import numpy as np
 
 from .backbones import backbone_hidden_size
-
 from .common import render_options, serialize_state
 
 DEFAULT_SHORTLIST_K = 20

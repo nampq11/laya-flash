@@ -4,11 +4,11 @@ Run: python tests/test_download.py
 """
 import json
 import os
-from pathlib import Path
 import shutil
 import sys
 import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 os.environ.setdefault("USE_TF", "0")
