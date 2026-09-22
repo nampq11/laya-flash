@@ -19,6 +19,8 @@ from typing import Any, Callable, Dict, List, Optional, Sequence
 
 import numpy as np
 
+from .backbones import backbone_hidden_size
+
 from .common import render_options, serialize_state
 
 DEFAULT_SHORTLIST_K = 20
@@ -133,10 +135,12 @@ def embed_fn_from_agent(
     tok = agent.tok
     encoder = agent.model.encoder
     device = agent.device
+    # Resolved once, here: a mis-wired encoder (no width to read) fails at construction
+    # with the clear error instead of producing zero-width embeddings on first use.
+    hidden = backbone_hidden_size(encoder)
 
     def embed_fn(texts: Sequence[str]) -> np.ndarray:
         rows = ["" if text is None else str(text) for text in texts]
-        hidden = _hidden_size(encoder)
         if not rows:
             return np.zeros((0, hidden), dtype=np.float32)
         parts: List[np.ndarray] = []
@@ -152,9 +156,7 @@ def embed_fn_from_agent(
             input_ids = encoded["input_ids"].to(device)
             attention_mask = encoded["attention_mask"].to(device)
             with torch.inference_mode():
-                hidden_states = encoder(
-                    input_ids=input_ids, attention_mask=attention_mask
-                ).last_hidden_state
+                hidden_states = encoder(input_ids=input_ids, attention_mask=attention_mask)
                 mask = attention_mask.unsqueeze(-1).to(dtype=hidden_states.dtype)
                 pooled = (hidden_states * mask).sum(dim=1) / mask.sum(dim=1).clamp(min=1.0)
             parts.append(pooled.float().cpu().numpy())
@@ -263,10 +265,3 @@ def _call_predict(agent, state, questions, **predict_kwargs):
     if fn is None:
         raise TypeError("agent must provide predict or system_one")
     return fn(state, questions, **predict_kwargs)
-
-
-def _hidden_size(encoder) -> int:
-    size = getattr(getattr(encoder, "config", None), "hidden_size", None)
-    if isinstance(size, bool) or not isinstance(size, int) or size < 1:
-        return 0
-    return size

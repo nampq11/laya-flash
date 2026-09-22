@@ -392,11 +392,6 @@ check(
 import torch  # noqa: E402
 
 
-class _Out:
-    def __init__(self, hidden):
-        self.last_hidden_state = hidden
-
-
 class TinyEncoder(torch.nn.Module):
     def __init__(self):
         super().__init__()
@@ -406,9 +401,9 @@ class TinyEncoder(torch.nn.Module):
     def forward(self, input_ids, attention_mask):
         self.forwards += 1
         # Channel 0 is the token id; channel 1 is 1. Padding must drop out of the mean.
+        # Returns the hidden-state tensor itself, as the LayaBackbone contract does.
         ids = input_ids.float()
-        hidden = torch.stack([ids, torch.ones_like(ids)], dim=-1)
-        return _Out(hidden)
+        return torch.stack([ids, torch.ones_like(ids)], dim=-1)
 
 
 class TinyTok:

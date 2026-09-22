@@ -1,6 +1,7 @@
 """Laya: Fast, non-autoregressive System 1 decision engine with calibrated probabilities."""
 
 from .agent import Agent, RLAgent, load
+from .backbones import LayaBackbone, as_backbone, lfm2_backbone
 from .common import (
     QTYPES,
     QTYPE_NAMES,
@@ -28,6 +29,9 @@ __all__ = [
     "Agent",
     "RLAgent",
     "load",
+    "LayaBackbone",
+    "as_backbone",
+    "lfm2_backbone",
     "Router",
     "RouteDecision",
     "DEFAULT_MODELS",

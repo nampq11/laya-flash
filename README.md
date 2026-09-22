@@ -431,6 +431,68 @@ Runtime on 2xT4 is roughly 4-5 hours for 4 epochs over ~30k questions.
 
 ---
 
+## Backbones
+
+The encoder under the decision head is a swappable module behind one contract
+([`laya/backbones.py`](laya/backbones.py)):
+
+```python
+class LayaBackbone(nn.Module):
+    hidden_size: int                                   # width the decision head consumes
+    def forward(self, input_ids, attention_mask) -> Tensor   # [batch, seq, hidden_size]
+    def prepare_tokenizer(self, tok) -> None           # optional special-token fixups
+```
+
+```
+                 LayaBackbone (abstract)
+                /                        \
+   as_backbone(any HF encoder)      lfm2_backbone("LiquidAI/LFM2.5-Encoder-230M")
+   ModernBERT-large / mmBERT / ...  hidden_size 1024, bidirectional patches,
+   rebound in place: state_dict     no trust_remote_code, weights load bit-exact
+   keys unchanged                   vs the official remote-code path
+                \                        /
+                 DecisionModel (2-layer transformer head + scorer + act head)
+```
+
+`DecisionModel` sizes its head from the backbone's `hidden_size`, so a new encoder
+plugs in without architecture edits. An optional `head_dim` in
+`rl_agent_config.json` (or the `head_dim=` argument) fixes the head's input width
+across backbones instead: the backbone then carries a small `head_proj` Linear
+(e.g. LFM2's 1024 -> 768 to match an mmBERT-sized head). Published checkpoints do
+not set it, so their weights are unchanged.
+
+**Using LFM2.5-Encoder-230M** (needs `pip install 'laya[lfm2]'`, i.e.
+`transformers>=4.55`):
+
+```python
+import laya
+
+enc = laya.lfm2_backbone("LiquidAI/LFM2.5-Encoder-230M")   # or head_dim=768 to project
+model = laya.common.build_model(
+    {"encoder": "LiquidAI/LFM2.5-Encoder-230M", "head_layers": 2, "act_costs": {"act": 0.0}},
+)   # dispatches on model_type/config: LFM2 never goes through AutoModel (it would
+    # build the causal native Lfm2Model and silently drop the pretrained weights)
+```
+
+Details worth knowing:
+
+* **Tokenizer.** LFM2 has a mask token (`<|mask|>`, id 16) but no CLS/SEP.
+  `prepare_tokenizer` maps cls -> `<|startoftext|>` and sep -> `<|endoftext|>`,
+  reusing existing ids so the embedding matrix still matches; `Agent` calls it
+  automatically after loading.
+* **Bidirectionality.** LFM2 ships as a causal decoder; laya vendors LiquidAI's
+  Apache-2.0 bidirectional patches (full attention + non-causal short conv) so the
+  `[MASK]` markers see the whole sequence. `LAYA_LFM2_E2E=1 python tests/test_lfm2_e2e.py`
+  checks the outputs are bit-identical to the official `trust_remote_code` path.
+  The patches apply process-wide to transformers' shared lfm2 module (upstream's
+  remote-code file does the same), so serve causal LFM2 chat models in another process.
+* **No published LFM2 checkpoint yet.** A LFM2-backed Laya still needs a
+  fine-tuning run through the notebook to produce calibrated weights; the
+  integration is exercised offline by `tests/test_backbones.py` and, with real
+  weights, by `LAYA_LFM2_E2E=1 python tests/test_lfm2_e2e.py`.
+
+---
+
 ## Support the Project
 
 If Laya helps your research or products, consider supporting independent research:

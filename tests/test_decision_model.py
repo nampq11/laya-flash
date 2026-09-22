@@ -66,7 +66,9 @@ def test_single_option_top1_minus_top2_is_exactly_one():
         batch=1, seq=6, n_markers=1
     )
     with torch.no_grad():
-        h = model.encoder(input_ids=input_ids, attention_mask=attention_mask).last_hidden_state
+        # DecisionModel rebinds its encoder onto the LayaBackbone contract, so a raw
+        # call returns the hidden-state tensor itself.
+        h = model.encoder(input_ids=input_ids, attention_mask=attention_mask)
         h = h + model.type_emb(qtype)[:, None, :]
         pad = ~attention_mask.bool()
         for layer in model.head.layers:

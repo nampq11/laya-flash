@@ -187,6 +187,12 @@ class Agent:
         enc_dir = os.path.join(model_dir, "encoder")
         self.model = build_model(self.cfg, encoder_dir=enc_dir if os.path.exists(enc_dir) else None)
 
+        # Backbones whose tokenizer deviates from the BERT [CLS]/[SEP]/[MASK] conventions
+        # (LFM2, for one, has no CLS or SEP) normalize their special tokens here, before
+        # any build_sequence call needs them. The contract's no-op default makes the
+        # direct call safe; a contract violation should fail loudly, not skip silently.
+        self.model.encoder.prepare_tokenizer(self.tok)
+
         # Load weights and verify architectural compatibility
         weights = load_file(weights_path)
         _verify_compatibility(self.model, self.cfg, weights, model_id_or_path)

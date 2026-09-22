@@ -8,6 +8,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 
+from .backbones import LayaBackbone, as_backbone, lfm2_backbone
+
 QTYPES = {"choice": 0, "score": 1, "noul": 2}
 QTYPE_NAMES = {v: k for k, v in QTYPES.items()}
 
@@ -91,8 +93,14 @@ class DecisionModel(nn.Module):
 
     def __init__(self, encoder: nn.Module, head_layers: int = 2, n_act: int = 2, dropout: float = 0.1):
         super().__init__()
+        # One normalization point: every encoder a DecisionModel hosts is rebound onto
+        # the LayaBackbone contract (in place, state_dict keys untouched), so the head
+        # below and forward() can rely on hidden_size and a hidden-state tensor. The
+        # isinstance guard matters: re-applying as_backbone would double-attach head_proj.
+        if not isinstance(encoder, LayaBackbone):
+            encoder = as_backbone(encoder)
         self.encoder = encoder
-        d = encoder.config.hidden_size
+        d = encoder.hidden_size  # post-projection width when a head_proj was attached
         nhead = max(1, d // 64)
         layer = nn.TransformerEncoderLayer(d, nhead, 4 * d, dropout, batch_first=True, norm_first=True)
         self.head = nn.TransformerEncoder(layer, head_layers, enable_nested_tensor=False) if head_layers > 0 else None
@@ -103,7 +111,7 @@ class DecisionModel(nn.Module):
         self.head_checkpointing = False
 
     def forward(self, input_ids, attention_mask, marker_pos, marker_mask, qtype, detach_encoder: bool = False):
-        h = self.encoder(input_ids=input_ids, attention_mask=attention_mask).last_hidden_state
+        h = self.encoder(input_ids=input_ids, attention_mask=attention_mask)
         if detach_encoder:
             h = h.detach()
         h = h + self.type_emb(qtype)[:, None, :]
@@ -137,13 +145,33 @@ class DecisionModel(nn.Module):
 
 
 def build_model(cfg: Dict, encoder_dir: Optional[str] = None) -> DecisionModel:
+    """Build a DecisionModel whose backbone is chosen by the checkpoint's own config.
+
+    LFM2 is detected from the encoder config's model_type - never from the repo name -
+    because AutoModel would return the *causal* native Lfm2Model and silently drop the
+    pretrained weights; everything else goes through AutoModel as before and lands on
+    the LayaBackbone contract without touching its keys.
+
+    cfg["head_dim"] optionally fixes the head input width: the backbone then projects
+    its hidden states (e.g. LFM2's 1024 -> 768 to match an mmBERT-sized head). Without
+    it the head is sized from the encoder's native width, exactly as before.
+    """
     from transformers import AutoConfig, AutoModel
 
-    if encoder_dir and os.path.exists(encoder_dir):
-        ecfg = AutoConfig.from_pretrained(encoder_dir)
-        enc = AutoModel.from_config(ecfg, attn_implementation="sdpa")
+    head_dim = cfg.get("head_dim")
+    local = encoder_dir if encoder_dir and os.path.exists(encoder_dir) else None
+    # With no local encoder dir, resolve the config from the hub id / path itself so
+    # dispatch still sees the checkpoint's model_type; a name heuristic cannot be
+    # trusted (a renamed LFM2 repo would silently load causal random weights), and
+    # AutoModel resolves this same config internally anyway.
+    ecfg = AutoConfig.from_pretrained(local if local else cfg["encoder"])
+    if ecfg.model_type == "lfm2":
+        enc = lfm2_backbone(ecfg if local else cfg["encoder"],
+                            head_dim=head_dim, attn_implementation="sdpa")
+    elif local:
+        enc = as_backbone(AutoModel.from_config(ecfg, attn_implementation="sdpa"), head_dim)
     else:
-        enc = AutoModel.from_pretrained(cfg["encoder"], attn_implementation="sdpa")
+        enc = as_backbone(AutoModel.from_pretrained(cfg["encoder"], attn_implementation="sdpa"), head_dim)
     return DecisionModel(enc, cfg.get("head_layers", 2), len(cfg.get("act_costs", {})) + 1)
 
 

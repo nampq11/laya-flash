@@ -32,6 +32,11 @@ dependencies = [
     "numpy>=1.20.0",
 ]
 
+[project.optional-dependencies]
+# LFM2 backbones (e.g. LiquidAI/LFM2.5-Encoder-230M) need transformers' native
+# lfm2 support, which starts in 4.55. The base floor stays at ModernBERT's 4.48.
+lfm2 = ["transformers>=4.55.0"]
+
 [tool.setuptools]
 # assets/, research/ and notebooks/ sit in the root, so auto-discovery bails out.
 packages = ["laya"]
