@@ -1,4 +1,5 @@
 """Routing and language-detection tests. No model weights are loaded: `Router.route` is pure."""
+
 import os
 import sys
 import threading
@@ -60,10 +61,18 @@ for label, text, want in [
     ("hindi", "ग्राहक से दो बार शुल्क लिया गया", False),
     ("japanese", "お客様は二重に請求されました", False),
     ("russian", "С клиента дважды сняли деньги", False),
-    ("french long", "Le client a été facturé deux fois et il demande un remboursement pour la "
-                    "facture qui a été payée le mois dernier avec la carte de crédit", False),
-    ("german long", "Der Kunde wurde zweimal belastet und möchte eine Rückerstattung für die "
-                    "Rechnung die nicht korrekt ist und auch nicht bezahlt wurde", False),
+    (
+        "french long",
+        "Le client a été facturé deux fois et il demande un remboursement pour la "
+        "facture qui a été payée le mois dernier avec la carte de crédit",
+        False,
+    ),
+    (
+        "german long",
+        "Der Kunde wurde zweimal belastet und möchte eine Rückerstattung für die "
+        "Rechnung die nicht korrekt ist und auch nicht bezahlt wurde",
+        False,
+    ),
     # Latin-script languages with no stopword list of their own: reported in #35, where Romanian
     # states were handed to the English checkpoint (0.330 accuracy, 0.658 ECE on `ro`) instead of
     # the multilingual one. An unidentified language must never be assumed English.
@@ -74,23 +83,50 @@ for label, text, want in [
     ("turkish", "Müşteriden iki kez ücret alındı ve para iadesi istiyor lütfen yardım", False),
     ("vietnamese", "Khách hàng đã bị thu phí hai lần và muốn được hoàn tiền ngay", False),
     # English with the odd loanword must not tip over into the multilingual checkpoint
-    ("english with loanwords", "We visited a cafe in Zurich and the naive assumption about the "
-                               "invoice was wrong, so please refund the duplicate charge", True),
+    (
+        "english with loanwords",
+        "We visited a cafe in Zurich and the naive assumption about the "
+        "invoice was wrong, so please refund the duplicate charge",
+        True,
+    ),
 ]:
     check("is_english/" + label, is_english(text), want)
 
 # Undecided is reported as undecided rather than dressed up as a detection: a single shared
 # function word used to name a language ("para" in Turkish text was called Spanish).
-check("latin/undecided is flagged", analyse("Müşteriden iki kez ücret alındı ve para iadesi istiyor")["language_undecided"], True)
-check("latin/undecided names no language", analyse("Müşteriden iki kez ücret alındı ve para iadesi istiyor")["language"], None)
-check("latin/english is not undecided", analyse("Please refund the duplicate charge on the invoice")["language_undecided"], False)
+check(
+    "latin/undecided is flagged",
+    analyse("Müşteriden iki kez ücret alındı ve para iadesi istiyor")["language_undecided"],
+    True,
+)
+check(
+    "latin/undecided names no language",
+    analyse("Müşteriden iki kez ücret alındı ve para iadesi istiyor")["language"],
+    None,
+)
+check(
+    "latin/english is not undecided",
+    analyse("Please refund the duplicate charge on the invoice")["language_undecided"],
+    False,
+)
 check("latin/diacritic rate reported", analyse("Gătește-mi o rețetă de sarmale")["diacritic_rate"] > 0.02, True)
 check("latin/english has no diacritics", analyse("Please refund the duplicate charge today")["diacritic_rate"], 0.0)
 # every branch of analyse() reports the same keys, so a caller can read one without guarding
-_KEYS = {"script", "script_profile", "language", "is_english", "language_undecided",
-         "diacritic_rate", "non_latin_fraction"}
-for label, text in [("english", "Please refund the duplicate charge"), ("hindi", "ग्राहक से दो बार"),
-                    ("romanian", "Gătește-mi o rețetă de sarmale"), ("no letters", "12345 ???")]:
+_KEYS = {
+    "script",
+    "script_profile",
+    "language",
+    "is_english",
+    "language_undecided",
+    "diacritic_rate",
+    "non_latin_fraction",
+}
+for label, text in [
+    ("english", "Please refund the duplicate charge"),
+    ("hindi", "ग्राहक से दो बार"),
+    ("romanian", "Gătește-mi o rețetă de sarmale"),
+    ("no letters", "12345 ???"),
+]:
     check("analyse/keys " + label, set(analyse(text)), _KEYS)
 # A 0-0 tie between non-English stopword lists is no evidence for any of them
 check("latin_lang/zero tie invents nothing", guess_latin_language("Cât e ora acum la Tokyo"), None)
@@ -111,9 +147,14 @@ for label, text, want in [
 ]:
     check("latin_lang/" + label, guess_latin_language(text), want)
 # a non-English guess must never fire on ordinary English
-check("latin_lang/long english stays en",
-      guess_latin_language("Please refund the duplicate charge on invoice 4411 today because "
-                           "we have been waiting for three days and nobody has replied to us"), "en")
+check(
+    "latin_lang/long english stays en",
+    guess_latin_language(
+        "Please refund the duplicate charge on invoice 4411 today because "
+        "we have been waiting for three days and nobody has replied to us"
+    ),
+    "en",
+)
 
 
 # --------------------------------------------------------------------- state flattening
@@ -122,8 +163,9 @@ check("state_text/nested", "deep" in state_text({"a": {"b": ["deep"]}}), True)
 check("state_text/list", "x" in state_text(["x", {"y": "z"}]), True)
 check("state_text/none", state_text(None), "")
 # keys must not drive detection: English keys around Hindi content stay non-English
-check("state_text/keys ignored",
-      analyse({"subject": "नमस्ते", "body": "ग्राहक से दो बार शुल्क लिया गया"})["is_english"], False)
+check(
+    "state_text/keys ignored", analyse({"subject": "नमस्ते", "body": "ग्राहक से दो बार शुल्क लिया गया"})["is_english"], False
+)
 
 
 # --------------------------------------------------------------------- workflow signatures
@@ -144,10 +186,16 @@ check("workflow/empty", match_typed_decisions_workflow({}), None)
 
 
 # --------------------------------------------------------------------- name normalisation
-for alias, want in [("en", "english"), ("laya", "english"), ("multi", "multilingual"),
-                    ("ML", "multilingual"), ("typed", "typed-decisions"),
-                    ("typed_decisions", "typed-decisions"), ("English", "english"),
-                    ("convaiinnovations/laya".split("/")[-1], "english")]:
+for alias, want in [
+    ("en", "english"),
+    ("laya", "english"),
+    ("multi", "multilingual"),
+    ("ML", "multilingual"),
+    ("typed", "typed-decisions"),
+    ("typed_decisions", "typed-decisions"),
+    ("English", "english"),
+    ("convaiinnovations/laya".split("/")[-1], "english"),
+]:
     check("alias/" + alias, normalise_name(alias), want)
 try:
     normalise_name("nope")
@@ -158,8 +206,7 @@ except ValueError:
 
 # --------------------------------------------------------------------- routing decisions
 r = Router()
-Q_GENERIC = {"dept": {"type": "choice", "instructions": "Which team?",
-                      "criteria": {"billing": None, "tech": None}}}
+Q_GENERIC = {"dept": {"type": "choice", "instructions": "Which team?", "criteria": {"billing": None, "tech": None}}}
 Q_TD = {i: {"type": "noul", "instructions": "x"} for i in TD["customer_service"]}
 
 cases = [
@@ -170,11 +217,18 @@ cases = [
     ("japanese text", {"body": "二重に請求されました"}, Q_GENERIC, {}, "multilingual"),
     ("korean text", {"body": "두 번 청구되었습니다"}, Q_GENERIC, {}, "multilingual"),
     ("arabic text", {"body": "تم خصم المبلغ مرتين"}, Q_GENERIC, {}, "multilingual"),
-    ("german text", {"body": "Der Kunde wurde zweimal belastet und moechte eine Rueckerstattung "
-                             "fuer die Rechnung die nicht korrekt ist"}, Q_GENERIC, {}, "multilingual"),
+    (
+        "german text",
+        {
+            "body": "Der Kunde wurde zweimal belastet und moechte eine Rueckerstattung "
+            "fuer die Rechnung die nicht korrekt ist"
+        },
+        Q_GENERIC,
+        {},
+        "multilingual",
+    ),
     ("explicit model", {"body": "anything"}, Q_GENERIC, {"model": "multilingual"}, "multilingual"),
-    ("explicit model overrides script", {"body": "मुझसे दो बार"}, Q_GENERIC,
-     {"model": "english"}, "english"),
+    ("explicit model overrides script", {"body": "मुझसे दो बार"}, Q_GENERIC, {"model": "english"}, "english"),
     ("explicit task", {"body": "x"}, Q_GENERIC, {"task": "typed_decisions"}, "typed-decisions"),
     ("explicit lang en", {"body": "मुझसे दो बार"}, Q_GENERIC, {"lang": "en"}, "english"),
     ("explicit lang de", {"body": "hello there"}, Q_GENERIC, {"lang": "de"}, "multilingual"),
@@ -187,13 +241,12 @@ for label, state, qs, kw, want in cases:
 
 # auto task detection is opt-in
 r_auto = Router(auto_task_detection=True)
-check("route/td workflow, auto ON",
-      r_auto.route({"body": "I was charged twice"}, Q_TD)["model"], "typed-decisions")
-check("route/auto ON but generic questions",
-      r_auto.route({"body": "I was charged twice"}, Q_GENERIC)["model"], "english")
+check("route/td workflow, auto ON", r_auto.route({"body": "I was charged twice"}, Q_TD)["model"], "typed-decisions")
+check(
+    "route/auto ON but generic questions", r_auto.route({"body": "I was charged twice"}, Q_GENERIC)["model"], "english"
+)
 # explicit model still beats auto-detected workflow
-check("route/explicit beats workflow",
-      r_auto.route({"body": "x"}, Q_TD, model="multilingual")["model"], "multilingual")
+check("route/explicit beats workflow", r_auto.route({"body": "x"}, Q_TD, model="multilingual")["model"], "multilingual")
 
 # decision payload shape
 d = r.route({"body": "मुझसे दो बार शुल्क लिया गया"}, Q_GENERIC)
@@ -204,8 +257,7 @@ check("decision/.model property", d.model, "multilingual")
 check("decision/is dict", isinstance(d, dict), True)
 
 # default override
-check("route/custom default", Router(default="multilingual").route("12345", Q_GENERIC)["model"],
-      "multilingual")
+check("route/custom default", Router(default="multilingual").route("12345", Q_GENERIC)["model"], "multilingual")
 
 
 # --------------------------------------------------------------------- unknown-Latin routing (#35)
@@ -218,10 +270,16 @@ for label, text in [
 ]:
     check("route/unknown latin " + label, _r_lat.route(text).model, "multilingual")
 # and the reason must say what it actually routed on, not report a language it did not identify
-check("route/undecided reason mentions letters",
-      "not identified" in _r_lat.route("Müşteriden iki kez ücret alındı ve para iadesi istiyor").reason, True)
-check("route/english still english",
-      _r_lat.route("Please refund the duplicate charge on invoice 4411 today.").model, "english")
+check(
+    "route/undecided reason mentions letters",
+    "not identified" in _r_lat.route("Müşteriden iki kez ücret alındı ve para iadesi istiyor").reason,
+    True,
+)
+check(
+    "route/english still english",
+    _r_lat.route("Please refund the duplicate charge on invoice 4411 today.").model,
+    "english",
+)
 check("route/short english still english", _r_lat.route("refund me").model, "english")
 
 
@@ -285,7 +343,7 @@ check("lru/cap 2 evicts oldest", rr.loaded, ["multilingual", "typed-decisions"])
 rr = stubbed_router(2)
 rr.load("english")
 rr.load("multilingual")
-rr.load("english")   # touch english
+rr.load("english")  # touch english
 rr.load("typed-decisions")
 check("lru/touch protects", sorted(rr.loaded), ["english", "typed-decisions"])
 
@@ -305,12 +363,21 @@ check("repo_str/plain string", _repo_str("some/repo"), "some/repo")
 
 r_bundle = Router()
 r_alone = Router(standalone_repos=True)
-check("bundle/default router uses bundle",
-      r_bundle.route({"m": "मुझसे दो बार"}, Q_GENERIC)["repo"], "convaiinnovations/laya/multilingual")
-check("standalone/opt-in uses own repo",
-      r_alone.route({"m": "मुझसे दो बार"}, Q_GENERIC)["repo"], "convaiinnovations/laya-multilingual")
-check("standalone/english unchanged",
-      r_alone.route({"m": "I was charged twice"}, Q_GENERIC)["repo"], "convaiinnovations/laya")
+check(
+    "bundle/default router uses bundle",
+    r_bundle.route({"m": "मुझसे दो बार"}, Q_GENERIC)["repo"],
+    "convaiinnovations/laya/multilingual",
+)
+check(
+    "standalone/opt-in uses own repo",
+    r_alone.route({"m": "मुझसे दो बार"}, Q_GENERIC)["repo"],
+    "convaiinnovations/laya-multilingual",
+)
+check(
+    "standalone/english unchanged",
+    r_alone.route({"m": "I was charged twice"}, Q_GENERIC)["repo"],
+    "convaiinnovations/laya",
+)
 check("standalone map complete", sorted(STANDALONE_MODELS), sorted(DEFAULT_MODELS))
 # a local-path override must still work (the Space and tests rely on it)
 r_local = Router(models={"english": "/tmp/en", "multilingual": "/tmp/ml"})
@@ -319,16 +386,13 @@ check("override/local path kept", r_local.route({"m": "मुझसे दो �
 
 # --------------------------------------------------------------------- preload
 rr = stubbed_router(1)
-rr.preload = lambda names=None, _r=rr: (
-    [_load_stub(_r, n) for n in (names or list(_r.models))],
-    _r)[1]
+rr.preload = lambda names=None, _r=rr: ([_load_stub(_r, n) for n in (names or list(_r.models))], _r)[1]
 # max_loaded must grow to fit what was preloaded, or the LRU evicts it immediately
 rp = stubbed_router(1)
 rp.max_loaded = max(rp.max_loaded, 3)
 for n in ("english", "multilingual", "typed-decisions"):
     _load_stub(rp, n)
-check("preload/all three stay resident", sorted(rp.loaded),
-      ["english", "multilingual", "typed-decisions"])
+check("preload/all three stay resident", sorted(rp.loaded), ["english", "multilingual", "typed-decisions"])
 check("preload/max_loaded raised", rp.max_loaded >= 3, True)
 
 rp2 = stubbed_router(1)
@@ -358,9 +422,11 @@ check("attach/accepts aliases", stubbed_router(1).attach("en", _Stub("x")) is no
 
 # --------------------------------------------------------------------- thread safety (issue #95)
 
+
 def _concurrent_load_dedup():
     """Concurrent load() of the same checkpoint must build one Agent, shared by all callers."""
     import laya.agent as _agent_mod
+
     constructions = []
     cl = threading.Lock()
 
@@ -390,6 +456,7 @@ def _concurrent_load_dedup():
         return len({id(x) for x in got}), len(constructions), len(r._order), sorted(r._agents)
     finally:
         _agent_mod.Agent = old
+
 
 unique, built, order_len, agents = _concurrent_load_dedup()
 check("threads/8 concurrent loads share one Agent", unique, 1)
@@ -425,6 +492,7 @@ def _concurrent_hotpath():
         return len(r._order), len(r._agents), r._order
     finally:
         _agent_mod.Agent = old
+
 
 order_len, agents_len, order = _concurrent_hotpath()
 check("threads/hot-path loads keep one entry", order_len, 1)

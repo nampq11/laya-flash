@@ -2,6 +2,7 @@
 
 Text parsing, not tomllib: the floor is 3.10 and tomllib arrives in 3.11.
 """
+
 import os
 import re
 import sys
@@ -42,8 +43,7 @@ check_true("pyproject/declares requires-python", requires_python is not None)
 floor = version_tuple(requires_python.group(1)) if requires_python else (0, 0)
 
 classifier_versions = [
-    version_tuple(v)
-    for v in re.findall(r'"Programming Language :: Python :: (\d+\.\d+)"', pyproject)
+    version_tuple(v) for v in re.findall(r'"Programming Language :: Python :: (\d+\.\d+)"', pyproject)
 ]
 check_true("pyproject/advertises specific Python versions", len(classifier_versions) > 0)
 below_floor = [".".join(str(p) for p in v) for v in classifier_versions if v < floor]
@@ -75,8 +75,7 @@ lfm2_extra = re.search(r'lfm2\s*=\s*\[[^\]]*"transformers>=([\d.]+)"', pyproject
 check_true("pyproject/declares the lfm2 extra floor", lfm2_extra is not None)
 check_true(
     "lfm2 extra covers the backbones floor",
-    lfm2_extra is not None and lfm2_min is not None
-    and version_tuple(lfm2_extra.group(1)) >= lfm2_floor,
+    lfm2_extra is not None and lfm2_min is not None and version_tuple(lfm2_extra.group(1)) >= lfm2_floor,
     "the extra must deliver the transformers version backbones.py promises",
 )
 

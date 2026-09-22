@@ -62,9 +62,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - run: pip install ruff
-      - name: Ruff
-        run: ruff check laya/ --select=E9,F63,F7,F82,F401,F811 --line-length=120
+      # Pinned: formatter output can shift between minor versions, which would
+      # flip `ruff format --check` red without any code change.
+      - run: pip install ruff==0.16.8
+      - name: Lint
+        run: ruff check
+      - name: Format
+        run: ruff format --check
       - name: Byte-compile every module
         run: python -m compileall -q laya/ tests/
 

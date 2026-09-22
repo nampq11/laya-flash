@@ -27,6 +27,7 @@ primary routing signal.
 `auto_task_detection=True` or pass `task="typed_decisions"`: it is fine-tuned on four specific
 synthetic workflows and should not be a silent default.
 """
+
 import os
 import threading
 from typing import Any, Dict, List, Optional, Union
@@ -62,12 +63,19 @@ def _split(spec):
         return repo, sub
     return spec, None
 
+
 # Aliases people are likely to type.
 _ALIASES = {
-    "en": "english", "laya": "english", "default": "english",
-    "multi": "multilingual", "ml": "multilingual", "laya-multilingual": "multilingual",
-    "typed": "typed-decisions", "typed_decisions": "typed-decisions",
-    "laya-typed-decisions": "typed-decisions", "decisions": "typed-decisions",
+    "en": "english",
+    "laya": "english",
+    "default": "english",
+    "multi": "multilingual",
+    "ml": "multilingual",
+    "laya-multilingual": "multilingual",
+    "typed": "typed-decisions",
+    "typed_decisions": "typed-decisions",
+    "laya-typed-decisions": "typed-decisions",
+    "decisions": "typed-decisions",
 }
 
 # Question-id signatures of the four typed-decisions workflows, used only when
@@ -102,8 +110,9 @@ def normalise_name(name: str) -> str:
     key = str(name).strip().lower()
     key = _ALIASES.get(key, key)
     if key not in DEFAULT_MODELS:
-        raise ValueError("unknown model %r; choose one of %s (or an alias: %s)"
-                         % (name, sorted(DEFAULT_MODELS), sorted(_ALIASES)))
+        raise ValueError(
+            "unknown model %r; choose one of %s (or an alias: %s)" % (name, sorted(DEFAULT_MODELS), sorted(_ALIASES))
+        )
     return key
 
 
@@ -162,7 +171,7 @@ class Router:
         self.default = normalise_name(default)
         self.auto_task_detection = bool(auto_task_detection)
         self._agents: Dict[str, Any] = {}
-        self._order: List[str] = []          # least-recently-used first
+        self._order: List[str] = []  # least-recently-used first
         # Re-entrant lock guarding model lifecycle (load/unload/attach/preload) and the
         # LRU bookkeeping. RLock so the public methods can call the private `_touch`/`_evict`
         # helpers without deadlocking. Inference (`Agent.system_one`) is deliberately left
@@ -183,6 +192,7 @@ class Router:
                 self._touch(key)
                 return self._agents[key]
             from .agent import Agent
+
             repo, sub = _split(self.models[key])
             agent = Agent(repo, device=self.device, token=self.token, subfolder=sub)
             self._agents[key] = agent
@@ -201,7 +211,7 @@ class Router:
             while len(self._order) > self.max_loaded:
                 victim = self._order.pop(0)
                 self._agents.pop(victim, None)
-            if len(self._order) < len(self._agents):     # keep the two views consistent
+            if len(self._order) < len(self._agents):  # keep the two views consistent
                 for k in list(self._agents):
                     if k not in self._order:
                         self._agents.pop(k, None)
@@ -232,7 +242,7 @@ class Router:
         with self._lock:
             self.max_loaded = max(self.max_loaded, len(names), len(self._agents))
             for n in names:
-                if n not in self._agents:      # an attached agent is already built
+                if n not in self._agents:  # an attached agent is already built
                     self.load(n)
         return self
 
@@ -269,24 +279,45 @@ class Router:
         """
         if model is not None:
             key = normalise_name(model)
-            return RouteDecision(model=key, repo=_repo_str(self.models[key]), reason="explicit model=%r" % model,
-                                 detection=None, workflow=None)
+            return RouteDecision(
+                model=key,
+                repo=_repo_str(self.models[key]),
+                reason="explicit model=%r" % model,
+                detection=None,
+                workflow=None,
+            )
 
         if task is not None:
-            key = normalise_name("typed-decisions" if str(task).lower().replace("-", "_") == "typed_decisions" else task)
-            return RouteDecision(model=key, repo=_repo_str(self.models[key]), reason="explicit task=%r" % task,
-                                 detection=None, workflow=None)
+            key = normalise_name(
+                "typed-decisions" if str(task).lower().replace("-", "_") == "typed_decisions" else task
+            )
+            return RouteDecision(
+                model=key,
+                repo=_repo_str(self.models[key]),
+                reason="explicit task=%r" % task,
+                detection=None,
+                workflow=None,
+            )
 
         workflow = match_typed_decisions_workflow(questions or {})
         if workflow and self.auto_task_detection:
-            return RouteDecision(model="typed-decisions", repo=self.models["typed-decisions"],
-                                 reason="question ids match the %r typed-decisions workflow" % workflow,
-                                 detection=None, workflow=workflow)
+            return RouteDecision(
+                model="typed-decisions",
+                repo=self.models["typed-decisions"],
+                reason="question ids match the %r typed-decisions workflow" % workflow,
+                detection=None,
+                workflow=workflow,
+            )
 
         if lang is not None:
             key = "english" if str(lang).lower().split("-")[0] in ("en", "eng", "english") else "multilingual"
-            return RouteDecision(model=key, repo=_repo_str(self.models[key]), reason="explicit lang=%r" % lang,
-                                 detection=None, workflow=workflow)
+            return RouteDecision(
+                model=key,
+                repo=_repo_str(self.models[key]),
+                reason="explicit lang=%r" % lang,
+                detection=None,
+                workflow=workflow,
+            )
 
         det = analyse(state)
         if det["script"] == "unknown":
@@ -295,7 +326,9 @@ class Router:
         elif det["script"] != "latin":
             key = "multilingual"
             reason = "non-Latin script (%s, %.0f%% of letters); the English checkpoint cannot read it" % (
-                det["script"], 100 * float(det["non_latin_fraction"]))
+                det["script"],
+                100 * float(det["non_latin_fraction"]),
+            )
         elif not det["is_english"]:
             key = "multilingual"
             if det["language"]:
@@ -303,13 +336,16 @@ class Router:
             else:
                 # Unidentified Latin-script language: routed on the non-English letters alone,
                 # because no stopword list here covers it.
-                reason = ("Latin script, language not identified but %.0f%% non-English letters; "
-                          "not safe for the English checkpoint" % (100 * float(det["diacritic_rate"])))
+                reason = (
+                    "Latin script, language not identified but %.0f%% non-English letters; "
+                    "not safe for the English checkpoint" % (100 * float(det["diacritic_rate"]))
+                )
         else:
             key = "english"
             reason = "English Latin text"
-        return RouteDecision(model=key, repo=_repo_str(self.models[key]), reason=reason,
-                             detection=det, workflow=workflow)
+        return RouteDecision(
+            model=key, repo=_repo_str(self.models[key]), reason=reason, detection=det, workflow=workflow
+        )
 
     # ------------------------------------------------------------------ running
     def predict(

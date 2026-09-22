@@ -28,6 +28,7 @@ bidirectional, so any causal LFM2 model in the same process (e.g. an LFM2 chat m
 would silently attend bidirectionally too. Upstream's remote-code file has the same
 effect; if you serve causal LFM2 models, do it in another process.
 """
+
 from abc import ABC, abstractmethod
 from typing import Dict, Optional, Union
 
@@ -105,6 +106,7 @@ def _hf_backbone_class(base: type) -> type:
     """One mixed class per concrete encoder class, cached so type identity is stable."""
     cls = _BACKBONE_CLASSES.get(base)
     if cls is None:
+
         class _HFBackbone(base, LayaBackbone):
             # The concrete base comes first in the MRO so its __init__/forward win;
             # LayaBackbone only contributes the contract and prepare_tokenizer.
@@ -150,6 +152,7 @@ def _import_lfm2():
     """transformers' native lfm2 module, with an actionable error when too old."""
     try:
         from transformers.models.lfm2 import modeling_lfm2 as module
+
         module.Lfm2Model, module.Lfm2Attention, module.Lfm2ShortConv  # attribute smoke test
         return module
     except (ImportError, AttributeError) as e:
@@ -174,8 +177,15 @@ def _install_lfm2_patches(module) -> None:
     if getattr(module, "_laya_bidirectional", False):
         return
 
-    def _bidirectional_mask(config, input_embeds=None, attention_mask=None, cache_position=None,
-                            past_key_values=None, position_ids=None, **kwargs):
+    def _bidirectional_mask(
+        config,
+        input_embeds=None,
+        attention_mask=None,
+        cache_position=None,
+        past_key_values=None,
+        position_ids=None,
+        **kwargs,
+    ):
         # transformers has renamed the embeds kwarg across versions
         # (input_embeds <-> inputs_embeds); accept either to stay forward-compatible.
         if input_embeds is None:
@@ -197,12 +207,13 @@ def _install_lfm2_patches(module) -> None:
             key_pad_flags = (attention_mask == 0).to(device=device, dtype=torch.float32)
             pad_vec = torch.zeros((bsz, kv_len), device=device, dtype=torch.float32)
             if cur_len > 0:
-                pad_vec[:, past:past + cur_len] = key_pad_flags * -1e9
+                pad_vec[:, past : past + cur_len] = key_pad_flags * -1e9
             mask = mask + pad_vec.to(dtype)[:, None, None, :]
         return mask
 
-    def _noncausal_shortconv_forward(self, hidden_states, past_key_values=None, cache_position=None,
-                                      attention_mask=None, **kwargs):
+    def _noncausal_shortconv_forward(
+        self, hidden_states, past_key_values=None, cache_position=None, attention_mask=None, **kwargs
+    ):
         # The stock conv pads only on the left (causal); symmetric k//2 padding makes
         # every position see its neighbours on both sides, as an encoder must.
         x = module.apply_mask_to_padding_states(hidden_states, attention_mask)
@@ -211,11 +222,16 @@ def _install_lfm2_patches(module) -> None:
         Bx = B * x
         k = self.conv.weight.shape[-1]
         conv_out = F.conv1d(
-            Bx, weight=self.conv.weight, bias=self.conv.bias,
-            stride=1, padding=k // 2, dilation=1, groups=Bx.shape[1],
+            Bx,
+            weight=self.conv.weight,
+            bias=self.conv.bias,
+            stride=1,
+            padding=k // 2,
+            dilation=1,
+            groups=Bx.shape[1],
         )
         if conv_out.shape[-1] > Bx.shape[-1]:
-            conv_out = conv_out[..., :Bx.shape[-1]]
+            conv_out = conv_out[..., : Bx.shape[-1]]
         elif conv_out.shape[-1] < Bx.shape[-1]:
             conv_out = F.pad(conv_out, (0, Bx.shape[-1] - conv_out.shape[-1]))
         y = C * conv_out
@@ -253,8 +269,7 @@ def _lfm2_backbone_class() -> type:
                         m.is_causal = False
 
             def forward(self, input_ids=None, attention_mask=None, **kwargs):
-                out = super().forward(input_ids=input_ids, attention_mask=attention_mask,
-                                      use_cache=False, **kwargs)
+                out = super().forward(input_ids=input_ids, attention_mask=attention_mask, use_cache=False, **kwargs)
                 return self._apply_head_proj(hidden_states_of(out))
 
             def prepare_tokenizer(self, tok) -> None:

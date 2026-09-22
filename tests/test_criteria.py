@@ -4,6 +4,7 @@ Regression tests for the bug reported in PR #2 (trocker): a `noul` question whos
 values were dicts raised `TypeError: can only concatenate str (not "dict") to str`, and
 `choice`/`score` stringified dicts as Python reprs instead of JSON.
 """
+
 import json
 import os
 import sys
@@ -36,13 +37,15 @@ check("criterion/list -> json", render_criterion(["a", "b"]), '["a", "b"]')
 check("criterion/int -> json", render_criterion(3), "3")
 check("criterion/bool -> json", render_criterion(False), "false")
 check("criterion/non-ascii kept", render_criterion({"d": "münchen"}), '{"d": "münchen"}')
-check_true("criterion/unserialisable falls back to str",
-           isinstance(render_criterion({"o": object()}), str))
+check_true("criterion/unserialisable falls back to str", isinstance(render_criterion({"o": object()}), str))
 
 
 # --------------------------------------------------------------- the reported crash
-q = {"t": "noul", "ins": "Is this phishing?",
-     "crit": {"true": {"desc": "phishing, scam or fraud"}, "false": {"desc": "legitimate"}}}
+q = {
+    "t": "noul",
+    "ins": "Is this phishing?",
+    "crit": {"true": {"desc": "phishing, scam or fraud"}, "false": {"desc": "legitimate"}},
+}
 try:
     out = render_options(q)
     check("noul/dict criteria does not crash", len(out), 2)
@@ -54,8 +57,7 @@ except TypeError as e:
 
 
 # --------------------------------------------------------------- choice and score
-out = render_options({"t": "choice", "ins": "x",
-                      "crit": {"billing": {"desc": "payments"}, "tech": None, "sales": ""}})
+out = render_options({"t": "choice", "ins": "x", "crit": {"billing": {"desc": "payments"}, "tech": None, "sales": ""}})
 check("choice/dict -> json", out[0], 'billing: {"desc": "payments"}')
 check("choice/None -> bare key", out[1], "tech")
 check("choice/empty string -> bare key", out[2], "sales")
@@ -73,30 +75,44 @@ check("score/int level -> json", out[2], "level 2: 2")
 
 
 # --------------------------------------------------------------- unchanged behaviour
-check("noul/default false text", render_options({"t": "noul", "ins": "x", "crit": None})[0],
-      "false: no, the statement does not hold")
-check("noul/default true text", render_options({"t": "noul", "ins": "x", "crit": None})[1],
-      "true: yes, the statement holds")
-check("noul/string criteria still work",
-      render_options({"t": "noul", "ins": "x", "crit": {"true": "yes it is", "false": "no"}}),
-      ["false: no", "true: yes it is"])
-check("choice/string criteria still work",
-      render_options({"t": "choice", "ins": "x", "crit": {"a": "first", "b": None}}),
-      ["a: first", "b"])
-check("score/string criteria still work",
-      render_options({"t": "score", "ins": "x", "crit": ["low", "high"]}),
-      ["level 0: low", "level 1: high"])
+check(
+    "noul/default false text",
+    render_options({"t": "noul", "ins": "x", "crit": None})[0],
+    "false: no, the statement does not hold",
+)
+check(
+    "noul/default true text",
+    render_options({"t": "noul", "ins": "x", "crit": None})[1],
+    "true: yes, the statement holds",
+)
+check(
+    "noul/string criteria still work",
+    render_options({"t": "noul", "ins": "x", "crit": {"true": "yes it is", "false": "no"}}),
+    ["false: no", "true: yes it is"],
+)
+check(
+    "choice/string criteria still work",
+    render_options({"t": "choice", "ins": "x", "crit": {"a": "first", "b": None}}),
+    ["a: first", "b"],
+)
+check(
+    "score/string criteria still work",
+    render_options({"t": "score", "ins": "x", "crit": ["low", "high"]}),
+    ["level 0: low", "level 1: high"],
+)
 
 # every rendered option must be a str, whatever went in
-for qq in [{"t": "choice", "ins": "x", "crit": {"a": {"n": 1}, "b": [1, 2], "c": 3.5}},
-           {"t": "score", "ins": "x", "crit": [{"a": 1}, [2], None]},
-           {"t": "noul", "ins": "x", "crit": {"true": [1], "false": {"z": 0}}}]:
-    check_true("all options are str (%s)" % qq["t"],
-               all(isinstance(o, str) for o in render_options(qq)))
+for qq in [
+    {"t": "choice", "ins": "x", "crit": {"a": {"n": 1}, "b": [1, 2], "c": 3.5}},
+    {"t": "score", "ins": "x", "crit": [{"a": 1}, [2], None]},
+    {"t": "noul", "ins": "x", "crit": {"true": [1], "false": {"z": 0}}},
+]:
+    check_true("all options are str (%s)" % qq["t"], all(isinstance(o, str) for o in render_options(qq)))
 
 # the JSON we emit is parseable back
-parsed = json.loads(render_options(
-    {"t": "noul", "ins": "x", "crit": {"true": {"a": 1}, "false": {"b": 2}}})[1].split("true: ", 1)[1])
+parsed = json.loads(
+    render_options({"t": "noul", "ins": "x", "crit": {"true": {"a": 1}, "false": {"b": 2}}})[1].split("true: ", 1)[1]
+)
 check("emitted json round-trips", parsed, {"a": 1})
 
 
@@ -112,8 +128,9 @@ check_true("fallback/flag is initialised", "fell_back_from = fell_back_why = Non
 check_true("fallback/warns only on a real fallback", "if fell_back_from is not None:" in _src)
 check_true("fallback/reports the underlying reason", "Reason: %s" in _src)
 check_true("fallback/keeps the actionable advice", "download.pytorch.org/whl/nightly" in _src)
-check_true("fallback/no bare cuda probe for the warning",
-           "torch.cuda.is_available() or getattr(torch.version" not in _src)
+check_true(
+    "fallback/no bare cuda probe for the warning", "torch.cuda.is_available() or getattr(torch.version" not in _src
+)
 
 
 print("\n%d passed, %d failed" % (len(PASS), len(FAIL)))

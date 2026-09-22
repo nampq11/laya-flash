@@ -14,6 +14,7 @@ https://github.com/NandhaKishorM/laya/issues/102. Ranking here is cosine similar
 whatever vectors ``embed_fn`` returns. Issue #102's BANKING77 figures belong to that
 report; this module does not measure them.
 """
+
 import json
 from typing import Any, Callable, Dict, List, Optional, Sequence
 
@@ -82,9 +83,7 @@ def predict_shortlist(
             continue
         if "criteria" not in qdef:
             raise ValueError("question %r is a choice but has no criteria" % (qid,))
-        labels, scores, passthrough, n = _rank(
-            state, qdef["criteria"], embed_fn, checked, qdef.get("instructions")
-        )
+        labels, scores, passthrough, n = _rank(state, qdef["criteria"], embed_fn, checked, qdef.get("instructions"))
         meta[qid] = {
             "labels": list(labels),
             "scores": scores,
@@ -101,9 +100,7 @@ def predict_shortlist(
 
     result = _call_predict(agent, state, reduced, **predict_kwargs)
     if not isinstance(result, dict):
-        raise TypeError(
-            "predict/system_one must return a dict, got %s" % type(result).__name__
-        )
+        raise TypeError("predict/system_one must return a dict, got %s" % type(result).__name__)
     out = dict(result)
     out["shortlist"] = meta
     return out
@@ -192,9 +189,7 @@ def _criteria_items(criteria):
     elif isinstance(criteria, list):
         items = [(item, None) for item in criteria]
     else:
-        raise TypeError(
-            "choice criteria must be a dict or list, got %s" % type(criteria).__name__
-        )
+        raise TypeError("choice criteria must be a dict or list, got %s" % type(criteria).__name__)
     if not items:
         raise ValueError("choice criteria must contain at least one option")
     seen = set()
@@ -237,10 +232,7 @@ def _embeddings(embed_fn, texts: Sequence[str]) -> np.ndarray:
         raw = raw.detach().float().cpu().numpy()
     arr = np.asarray(raw, dtype=np.float64)
     if arr.ndim != 2 or arr.shape[0] != len(texts) or arr.shape[1] < 1:
-        raise ValueError(
-            "embed_fn must return an array of shape (%d, dim), got %s"
-            % (len(texts), tuple(arr.shape))
-        )
+        raise ValueError("embed_fn must return an array of shape (%d, dim), got %s" % (len(texts), tuple(arr.shape)))
     return np.nan_to_num(arr, copy=True, nan=0.0, posinf=0.0, neginf=0.0)
 
 

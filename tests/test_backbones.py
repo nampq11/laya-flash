@@ -5,6 +5,7 @@ Run: python tests/test_backbones.py
 The LFM2 cases need transformers >= 4.55 (the `laya[lfm2]` extra); on older installs
 they are skipped so the file stays green at the package's base 4.48 floor.
 """
+
 import sys
 import tempfile
 from pathlib import Path
@@ -24,14 +25,14 @@ from laya.common import DecisionModel, build_model, build_sequence
 def _lfm2_available() -> bool:
     try:
         import transformers.models.lfm2  # noqa: F401
+
         return True
     except ImportError:
         return False
 
 
 def _tiny_bert_config() -> BertConfig:
-    return BertConfig(vocab_size=50, hidden_size=16, num_hidden_layers=1,
-                      num_attention_heads=1, intermediate_size=32)
+    return BertConfig(vocab_size=50, hidden_size=16, num_hidden_layers=1, num_attention_heads=1, intermediate_size=32)
 
 
 def _tiny_bert() -> BertModel:
@@ -42,18 +43,37 @@ def _tiny_lfm2_config():
     from transformers.models.lfm2 import Lfm2Config
 
     # num_key_value_heads must match num_attention_heads or GQA shapes break at this width.
-    return Lfm2Config(hidden_size=32, num_hidden_layers=2, num_attention_heads=4,
-                      num_key_value_heads=4, intermediate_size=64, vocab_size=64,
-                      max_position_embeddings=256, layer_types=["conv", "full_attention"])
+    return Lfm2Config(
+        hidden_size=32,
+        num_hidden_layers=2,
+        num_attention_heads=4,
+        num_key_value_heads=4,
+        intermediate_size=64,
+        vocab_size=64,
+        max_position_embeddings=256,
+        layer_types=["conv", "full_attention"],
+    )
 
 
 def _lfm2_style_tokenizer():
     """WordLevel tokenizer with LFM2's conventions: mask/pad present, no CLS/SEP."""
-    vocab = {"<|pad|>": 0, "<|unk|>": 1, "<|startoftext|>": 2, "<|endoftext|>": 3,
-             "<|mask|>": 4, "option": 5, "urgent": 6, "later": 7, "pick": 8, "one": 9}
+    vocab = {
+        "<|pad|>": 0,
+        "<|unk|>": 1,
+        "<|startoftext|>": 2,
+        "<|endoftext|>": 3,
+        "<|mask|>": 4,
+        "option": 5,
+        "urgent": 6,
+        "later": 7,
+        "pick": 8,
+        "one": 9,
+    }
     tok = PreTrainedTokenizerFast(
         tokenizer_object=Tokenizer(WordLevel(vocab, unk_token="<|unk|>")),
-        pad_token="<|pad|>", unk_token="<|unk|>", mask_token="<|mask|>",
+        pad_token="<|pad|>",
+        unk_token="<|unk|>",
+        mask_token="<|mask|>",
     )
     return tok, vocab
 
@@ -153,14 +173,19 @@ def test_lfm2_prepare_tokenizer_maps_cls_and_sep():
 
 def test_decision_model_with_backbone():
     torch.manual_seed(4)
-    for encoder, d in ((as_backbone(_tiny_bert(), head_dim=8), 8), (lfm2_backbone(_tiny_lfm2_config(), head_dim=16), 16)):
+    for encoder, d in (
+        (as_backbone(_tiny_bert(), head_dim=8), 8),
+        (lfm2_backbone(_tiny_lfm2_config(), head_dim=16), 16),
+    ):
         model = DecisionModel(encoder, head_layers=1, n_act=2).eval()
         assert model.scorer[1].out_features == d  # head sized from the post-projection width
         n, L, K = 2, 8, 3
         out = model(
-            torch.randint(0, 50, (n, L)), torch.ones(n, L, dtype=torch.long),
+            torch.randint(0, 50, (n, L)),
+            torch.ones(n, L, dtype=torch.long),
             torch.arange(K).unsqueeze(0).expand(n, -1).contiguous(),
-            torch.ones(n, K, dtype=torch.bool), torch.zeros(n, dtype=torch.long),
+            torch.ones(n, K, dtype=torch.bool),
+            torch.zeros(n, dtype=torch.long),
         )
         assert out[0].shape == (n, K) and out[1].shape == (n, 2)
         assert torch.isfinite(out[0]).all() and torch.isfinite(out[1]).all()
@@ -177,8 +202,14 @@ def test_build_model_dispatches_on_model_type():
         # Save the model (not just its config): the no-encoder_dir case below loads it
         # back through from_pretrained on the path.
         lfm2_backbone(_tiny_lfm2_config()).save_pretrained(enc_dir)
-        cfg = {"encoder": str(enc_dir), "head_layers": 1, "act_costs": {"act": 0},
-               "head_dim": 16, "max_len": 64, "head_max_len": 32}
+        cfg = {
+            "encoder": str(enc_dir),
+            "head_layers": 1,
+            "act_costs": {"act": 0},
+            "head_dim": 16,
+            "max_len": 64,
+            "head_max_len": 32,
+        }
         model = build_model(cfg, encoder_dir=str(enc_dir))
         assert isinstance(model.encoder, LayaBackbone)
         assert model.encoder.config.model_type == "lfm2"  # routed to the LFM2 class, not AutoModel

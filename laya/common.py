@@ -1,4 +1,5 @@
 """Core model architecture, token sequence construction, and confidence estimation for laya."""
+
 import json
 import math
 import os
@@ -43,7 +44,8 @@ def render_options(q: Dict) -> List[str]:
     crit = crit or {}
     false_crit, true_crit = crit.get("false"), crit.get("true")
     return [
-        "false: " + (render_criterion(false_crit) if false_crit not in (None, "") else "no, the statement does not hold"),
+        "false: "
+        + (render_criterion(false_crit) if false_crit not in (None, "") else "no, the statement does not hold"),
         "true: " + (render_criterion(true_crit) if true_crit not in (None, "") else "yes, the statement holds"),
     ]
 
@@ -66,8 +68,7 @@ def build_sequence(
     opt_ids = []
     for i in order:
         opt_ids.append(
-            [tok.mask_token_id]
-            + tok(" " + opts[i].replace(mask_tok, " "), add_special_tokens=False)["input_ids"][:48]
+            [tok.mask_token_id] + tok(" " + opts[i].replace(mask_tok, " "), add_special_tokens=False)["input_ids"][:48]
         )
     opt_budget = head_max_len - sum(len(o) for o in opt_ids)
     if opt_budget < 16:
@@ -166,8 +167,7 @@ def build_model(cfg: Dict, encoder_dir: Optional[str] = None) -> DecisionModel:
     # AutoModel resolves this same config internally anyway.
     ecfg = AutoConfig.from_pretrained(local if local else cfg["encoder"])
     if ecfg.model_type == "lfm2":
-        enc = lfm2_backbone(ecfg if local else cfg["encoder"],
-                            head_dim=head_dim, attn_implementation="sdpa")
+        enc = lfm2_backbone(ecfg if local else cfg["encoder"], head_dim=head_dim, attn_implementation="sdpa")
     elif local:
         enc = as_backbone(AutoModel.from_config(ecfg, attn_implementation="sdpa"), head_dim)
     else:
@@ -263,7 +263,7 @@ def clamp_temperature(t, lo: float = TEMP_MIN, hi: float = TEMP_MAX) -> float:
         t = float(t)
     except (TypeError, ValueError):
         return 1.0
-    if t != t or t in (float("inf"), float("-inf")):    # NaN / inf
+    if t != t or t in (float("inf"), float("-inf")):  # NaN / inf
         return 1.0
     return min(hi, max(lo, t))
 

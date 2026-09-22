@@ -1,4 +1,5 @@
 """Email utilities for cleaning and structuring email inputs in laya."""
+
 import re
 from typing import Dict, Optional
 
@@ -29,7 +30,7 @@ def _strip_disclaimer(paragraph: str) -> str:
     sender's actual request with it, which is worse than leaving one boilerplate line behind.
     """
     if not _DISCLAIMER.search(paragraph):
-        return paragraph                     # nothing to do: keep the original line structure
+        return paragraph  # nothing to do: keep the original line structure
     parts = [p.strip() for p in _SENTENCE.split(paragraph) if p.strip()]
     return " ".join(p for p in parts if not _DISCLAIMER.search(p))
 

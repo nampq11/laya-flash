@@ -4,6 +4,7 @@ Uses a tiny from-config BERT encoder (no pretrained weights downloaded) so
 these run fast and offline, unlike tests/test_local_e2e.py which needs a
 real checkpoint on disk.
 """
+
 import os
 import sys
 
@@ -46,9 +47,7 @@ def test_single_option_question_does_not_crash():
     # there is only one valid marker.
     torch.manual_seed(0)
     model = _tiny_model()
-    input_ids, attention_mask, marker_pos, marker_mask, qtype = _inputs(
-        batch=1, seq=8, n_markers=1
-    )
+    input_ids, attention_mask, marker_pos, marker_mask, qtype = _inputs(batch=1, seq=8, n_markers=1)
     with torch.no_grad():
         logits, act_logits = model(input_ids, attention_mask, marker_pos, marker_mask, qtype)
     assert logits.shape == (1, 1)
@@ -63,9 +62,7 @@ def test_single_option_top1_minus_top2_is_exactly_one():
     # decided 1.0 - the same signal it gets for any other unambiguous choice.
     torch.manual_seed(1)
     model = _tiny_model()
-    input_ids, attention_mask, marker_pos, marker_mask, qtype = _inputs(
-        batch=1, seq=6, n_markers=1
-    )
+    input_ids, attention_mask, marker_pos, marker_mask, qtype = _inputs(batch=1, seq=6, n_markers=1)
     with torch.no_grad():
         # DecisionModel rebinds its encoder onto the LayaBackbone contract, so a raw
         # call returns the hidden-state tensor itself.
@@ -87,9 +84,7 @@ def test_multi_option_question_is_unaffected():
     # unchanged - this pins that the single-option fix didn't touch it.
     torch.manual_seed(2)
     model = _tiny_model()
-    input_ids, attention_mask, marker_pos, marker_mask, qtype = _inputs(
-        batch=2, seq=10, n_markers=4
-    )
+    input_ids, attention_mask, marker_pos, marker_mask, qtype = _inputs(batch=2, seq=10, n_markers=4)
     with torch.no_grad():
         logits, act_logits = model(input_ids, attention_mask, marker_pos, marker_mask, qtype)
     assert torch.isfinite(logits).all()
@@ -101,4 +96,3 @@ if __name__ == "__main__":
     test_single_option_top1_minus_top2_is_exactly_one()
     test_multi_option_question_is_unaffected()
     print("all decision model tests passed")
-

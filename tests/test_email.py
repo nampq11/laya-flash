@@ -11,6 +11,7 @@ footer ran on without a blank line, the request went with it:
 Dropping the request is silent and severe; leaving one boilerplate line behind is neither, so the
 cleaning errs towards keeping text.
 """
+
 import os
 import sys
 
@@ -79,9 +80,7 @@ check(
 )
 check(
     "received-in-error footer is still dropped",
-    clean_email_body(
-        "Please reopen ticket 4411.\n\nIf you have received this message in error, delete it."
-    ),
+    clean_email_body("Please reopen ticket 4411.\n\nIf you have received this message in error, delete it."),
     "Please reopen ticket 4411.",
 )
 

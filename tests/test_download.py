@@ -2,6 +2,7 @@
 
 Run: python tests/test_download.py
 """
+
 import json
 import os
 import shutil
@@ -32,23 +33,34 @@ class DownloadTests(unittest.TestCase):
         cls.tmp = tempfile.TemporaryDirectory()
         cls.repo = Path(cls.tmp.name) / "repo"
         cls.repo.mkdir()
-        config = BertConfig(vocab_size=6, hidden_size=64, num_hidden_layers=1,
-                            num_attention_heads=2, intermediate_size=128)
+        config = BertConfig(
+            vocab_size=6, hidden_size=64, num_hidden_layers=1, num_attention_heads=2, intermediate_size=128
+        )
         config.save_pretrained(cls.repo / "encoder")
         tokenizer = PreTrainedTokenizerFast(
-            tokenizer_object=Tokenizer(WordLevel(
-                {"[PAD]": 0, "[UNK]": 1, "[CLS]": 2, "[SEP]": 3, "[MASK]": 4, "hello": 5},
-                unk_token="[UNK]")),
-            pad_token="[PAD]", unk_token="[UNK]", cls_token="[CLS]",
-            sep_token="[SEP]", mask_token="[MASK]",
+            tokenizer_object=Tokenizer(
+                WordLevel({"[PAD]": 0, "[UNK]": 1, "[CLS]": 2, "[SEP]": 3, "[MASK]": 4, "hello": 5}, unk_token="[UNK]")
+            ),
+            pad_token="[PAD]",
+            unk_token="[UNK]",
+            cls_token="[CLS]",
+            sep_token="[SEP]",
+            mask_token="[MASK]",
         )
         tokenizer.save_pretrained(cls.repo / "tokenizer")
         model = DecisionModel(BertModel(config), head_layers=0)
         save_file(model.state_dict(), cls.repo / "model.safetensors")
-        (cls.repo / "rl_agent_config.json").write_text(json.dumps({
-            "encoder": "unused/offline", "head_layers": 0, "act_costs": {"act": 0},
-            "max_len": 64, "head_max_len": 32,
-        }))
+        (cls.repo / "rl_agent_config.json").write_text(
+            json.dumps(
+                {
+                    "encoder": "unused/offline",
+                    "head_layers": 0,
+                    "act_costs": {"act": 0},
+                    "max_len": 64,
+                    "head_max_len": 32,
+                }
+            )
+        )
         cls.runtime_files = {str(p.relative_to(cls.repo)) for p in cls.repo.rglob("*") if p.is_file()}
         for subfolder in ("multilingual", "typed-decisions", "variants/english"):
             for filename in cls.runtime_files:
@@ -58,8 +70,7 @@ class DownloadTests(unittest.TestCase):
         (cls.repo / "README.md").write_text("An unrelated model card")
         (cls.repo / "eval").mkdir()
         (cls.repo / "eval" / "results.json").write_text("{}")
-        cls.questions = {"q": {"type": "choice", "instructions": "Pick one",
-                               "criteria": ["yes", "no"]}}
+        cls.questions = {"q": {"type": "choice", "instructions": "Pick one", "criteria": ["yes", "no"]}}
         cls.expected = load(str(cls.repo), device="cpu").predict("hello", cls.questions)
 
     @classmethod
@@ -74,10 +85,10 @@ class DownloadTests(unittest.TestCase):
             downloaded = []
 
             def snapshot(repo_id, **kwargs):
-                files = [p.relative_to(self.repo).as_posix()
-                         for p in self.repo.rglob("*") if p.is_file()]
-                selected = filter_repo_objects(files, allow_patterns=kwargs.get("allow_patterns"),
-                                               ignore_patterns=kwargs.get("ignore_patterns"))
+                files = [p.relative_to(self.repo).as_posix() for p in self.repo.rglob("*") if p.is_file()]
+                selected = filter_repo_objects(
+                    files, allow_patterns=kwargs.get("allow_patterns"), ignore_patterns=kwargs.get("ignore_patterns")
+                )
                 for filename in selected:
                     target = Path(destination) / filename
                     target.parent.mkdir(parents=True, exist_ok=True)

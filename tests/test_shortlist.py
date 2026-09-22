@@ -3,6 +3,7 @@
 A fake ``embed_fn`` supplies vectors. ``predict`` / ``system_one`` are mocks, so the
 decision model is never constructed.
 """
+
 import inspect
 import os
 import sys
@@ -152,13 +153,15 @@ check(
 )
 
 # all-zero query: every cosine is 0, so the earliest labels win
-zero_q = TableEmbed({
-    "pay me": [0.0, 0.0],
-    "alpha": [1.0, 0.0],
-    "beta": [0.0, 1.0],
-    "gamma: mid": [0.6, 0.8],
-    "delta: same": [3.0, 4.0],
-})
+zero_q = TableEmbed(
+    {
+        "pay me": [0.0, 0.0],
+        "alpha": [1.0, 0.0],
+        "beta": [0.0, 1.0],
+        "gamma: mid": [0.6, 0.8],
+        "delta: same": [3.0, 4.0],
+    }
+)
 check(
     "topk/zero query keeps original order",
     shortlist_choice("pay me", CRITERIA, zero_q, k=2),
@@ -166,11 +169,13 @@ check(
 )
 
 # non-finite option vector is treated as 0 and loses to a real match
-nan_embed = TableEmbed({
-    "pay me": [1.0, 0.0],
-    "alpha": [float("nan"), float("nan")],
-    "beta": [1.0, 0.0],
-})
+nan_embed = TableEmbed(
+    {
+        "pay me": [1.0, 0.0],
+        "alpha": [float("nan"), float("nan")],
+        "beta": [1.0, 0.0],
+    }
+)
 check(
     "topk/nan vector sorts behind a finite match",
     shortlist_choice("pay me", {"alpha": None, "beta": None}, nan_embed, k=1),
@@ -179,12 +184,14 @@ check(
 
 
 # ---------------------------------------------------------------- list criteria and instructions
-list_embed = TableEmbed({
-    "Classify\npay me": [0.0, 1.0],
-    "alpha": [1.0, 0.0],
-    "beta": [0.0, 1.0],
-    "gamma": [0.0, 0.2],
-})
+list_embed = TableEmbed(
+    {
+        "Classify\npay me": [0.0, 1.0],
+        "alpha": [1.0, 0.0],
+        "beta": [0.0, 1.0],
+        "gamma": [0.0, 0.2],
+    }
+)
 check(
     "list/instructions change the query and the winner",
     shortlist_choice("pay me", ["alpha", "beta", "gamma"], list_embed, k=2, instructions="Classify"),
@@ -194,11 +201,13 @@ check("list/query text includes instructions", list_embed.calls[0][0], "Classify
 check("list/option texts are the labels", list_embed.calls[0][1:], ["alpha", "beta", "gamma"])
 
 state = {"text": "hi"}
-dict_embed = TableEmbed({
-    'Classify\n{"text": "hi"}': [1.0, 0.0],
-    "alpha": [1.0, 0.0],
-    "beta": [0.0, 1.0],
-})
+dict_embed = TableEmbed(
+    {
+        'Classify\n{"text": "hi"}': [1.0, 0.0],
+        "alpha": [1.0, 0.0],
+        "beta": [0.0, 1.0],
+    }
+)
 check(
     "query/dict state is serialized",
     shortlist_choice(state, ["alpha", "beta"], dict_embed, k=1, instructions="Classify"),
@@ -304,18 +313,22 @@ check_true("pass/predict received the original question", passthrough_agent.call
 check("pass/metadata labels are the full set", out["shortlist"]["intent"]["labels"], list(full))
 check("pass/scores omitted", out["shortlist"]["intent"]["scores"], None)
 check("pass/flag", out["shortlist"]["intent"]["passthrough"], True)
-check("pass/k > n flag", predict_shortlist(
-    Recorder(), "x", {"intent": original_q}, BoomEmbed(), k=99
-)["shortlist"]["intent"]["passthrough"], True)
+check(
+    "pass/k > n flag",
+    predict_shortlist(Recorder(), "x", {"intent": original_q}, BoomEmbed(), k=99)["shortlist"]["intent"]["passthrough"],
+    True,
+)
 
 # list criteria stay a list, in rank order, and Agent._to_internal accepts them
 list_agent = Recorder()
-list_q_embed = TableEmbed({
-    "Which?\nhello": [1.0, 0.0],
-    "alpha": [0.0, 1.0],
-    "beta": [1.0, 0.0],
-    "gamma": [0.0, 0.0],
-})
+list_q_embed = TableEmbed(
+    {
+        "Which?\nhello": [1.0, 0.0],
+        "alpha": [0.0, 1.0],
+        "beta": [1.0, 0.0],
+        "gamma": [0.0, 0.0],
+    }
+)
 list_questions = {"intent": {"type": "choice", "instructions": "Which?", "criteria": ["alpha", "beta", "gamma"]}}
 predict_shortlist(list_agent, "hello", list_questions, list_q_embed, k=2)
 received = list_agent.calls[0][1]["intent"]["criteria"]
@@ -375,6 +388,7 @@ check("err/bad shape does not call predict", len(bad_agent.calls), 0)
 
 def _torch_rows(texts):
     import torch
+
     rows = []
     for i, _text in enumerate(texts):
         rows.append([1.0, 0.0] if i == 0 or i == 1 else [0.0, 1.0])
@@ -474,7 +488,11 @@ pipe_q = {
 piped = predict_shortlist(pipe_agent, "I was charged twice", pipe_q, TableEmbed(full_vectors), k=2)
 scored = Agent._to_internal(pipe_agent.calls[0][1]["intent"])
 check("pipe/marker count equals k", len(scored["crit"]), 2)
-check("pipe/answer choice is inside the shortlist", piped["answers"]["intent"]["choice"] in piped["shortlist"]["intent"]["labels"], True)
+check(
+    "pipe/answer choice is inside the shortlist",
+    piped["answers"]["intent"]["choice"] in piped["shortlist"]["intent"]["labels"],
+    True,
+)
 
 
 print("\n%d passed, %d failed" % (len(PASS), len(FAIL)))

@@ -10,6 +10,7 @@ Verifies the things the LFM2 integration can get silently wrong:
      to the official trust_remote_code reference;
   3. the [MASK]-marker flow works with LFM2's tokenizer via prepare_tokenizer.
 """
+
 import os
 import sys
 from pathlib import Path
@@ -44,10 +45,8 @@ def main():
 
     # 2. Bidirectional: last-token changes must move position 0.
     with torch.no_grad():
-        a = enc(input_ids=torch.tensor([[10, 11, 12, 13, 14, 15]]),
-                attention_mask=torch.ones(1, 6, dtype=torch.long))
-        b = enc(input_ids=torch.tensor([[10, 11, 12, 13, 14, 999]]),
-                attention_mask=torch.ones(1, 6, dtype=torch.long))
+        a = enc(input_ids=torch.tensor([[10, 11, 12, 13, 14, 15]]), attention_mask=torch.ones(1, 6, dtype=torch.long))
+        b = enc(input_ids=torch.tensor([[10, 11, 12, 13, 14, 999]]), attention_mask=torch.ones(1, 6, dtype=torch.long))
     delta = float((a[0, 0] - b[0, 0]).abs().max())
     assert delta > 1e-4, "position 0 insensitive to the last token - encoder is causal"
     print("[lfm2 e2e] bidirectional pos-0 delta: %.4f" % delta)
@@ -58,8 +57,7 @@ def main():
     probe = tok("The capital of France <|mask|> is Paris.", return_tensors="pt")
     with torch.no_grad():
         h_ours = enc(input_ids=probe["input_ids"], attention_mask=probe["attention_mask"])
-        h_ref = ref_full.lfm2(
-            input_ids=probe["input_ids"], attention_mask=probe["attention_mask"]).last_hidden_state
+        h_ref = ref_full.lfm2(input_ids=probe["input_ids"], attention_mask=probe["attention_mask"]).last_hidden_state
     diff = float((h_ours - h_ref).abs().max())
     assert diff == 0.0, "vendored patches diverge from trust_remote_code (max diff %g)" % diff
     print("[lfm2 e2e] max abs diff vs trust_remote_code reference: %g" % diff)
@@ -67,8 +65,11 @@ def main():
 
     # 3. Full decision flow with the [MASK] markers, exactly as Agent.system_one does.
     model = DecisionModel(enc, head_layers=2, n_act=2).eval()
-    q = {"t": "choice", "ins": "Classify the priority",
-         "crit": {"urgent": "act today", "later": "whenever convenient", "never": "do not act"}}
+    q = {
+        "t": "choice",
+        "ins": "Classify the priority",
+        "crit": {"urgent": "act today", "later": "whenever convenient", "never": "do not act"},
+    }
     item = {"ids": [], "markers": [], "qtype": 0}
     ids, markers = build_sequence(tok, "Server on fire in production.", q, max_len=512, head_max_len=192)
     item["ids"], item["markers"] = ids, markers
@@ -76,8 +77,8 @@ def main():
     batch = collate_items([[item]], tok.pad_token_id)
     with torch.no_grad():
         logits, act_logits = model(
-            batch["input_ids"], batch["attention_mask"], batch["marker_pos"],
-            batch["marker_mask"], batch["qtype"])
+            batch["input_ids"], batch["attention_mask"], batch["marker_pos"], batch["marker_mask"], batch["qtype"]
+        )
     assert logits.shape == (1, 3) and act_logits.shape == (1, 2)
     p = torch.softmax(logits[0], -1)
     print("[lfm2 e2e] option probabilities (untrained head, uniform is expected):", [round(float(x), 3) for x in p])

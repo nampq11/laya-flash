@@ -1,4 +1,5 @@
 """High-level inference runtime for laya System 1 decision models."""
+
 import json
 import os
 import warnings
@@ -129,18 +130,22 @@ class Agent:
             prefix = f"{subfolder}/" if subfolder else ""
             kw = {
                 "token": token or os.environ.get("HF_TOKEN"),
-                "allow_patterns": [prefix + name for name in (
-                    "rl_agent_config.json", "model.safetensors", "tokenizer/*", "encoder/*",
-                )],
+                "allow_patterns": [
+                    prefix + name
+                    for name in (
+                        "rl_agent_config.json",
+                        "model.safetensors",
+                        "tokenizer/*",
+                        "encoder/*",
+                    )
+                ],
             }
             model_dir = snapshot_download(model_id_or_path, **kw)
 
         if subfolder:
             model_dir = os.path.join(model_dir, subfolder)
             if not os.path.isdir(model_dir):
-                raise FileNotFoundError(
-                    f"Subfolder {subfolder!r} not found in {model_id_or_path!r}."
-                )
+                raise FileNotFoundError(f"Subfolder {subfolder!r} not found in {model_id_or_path!r}.")
 
         _fix_tokenizer_config(model_dir)
 
@@ -157,9 +162,7 @@ class Agent:
 
         weights_path = os.path.join(model_dir, "model.safetensors")
         if not os.path.exists(weights_path):
-            raise FileNotFoundError(
-                f"Incompatible model: 'model.safetensors' not found in {model_id_or_path!r}."
-            )
+            raise FileNotFoundError(f"Incompatible model: 'model.safetensors' not found in {model_id_or_path!r}.")
 
         # 1. Device resolution with automatic fallback
         if device is not None:
@@ -167,7 +170,9 @@ class Agent:
             if target_device.type == "cuda" and not torch.cuda.is_available():
                 print("Warning: CUDA requested but not available. Falling back to CPU.")
                 self.device = torch.device("cpu")
-            elif target_device.type == "mps" and not (hasattr(torch.backends, "mps") and torch.backends.mps.is_available()):
+            elif target_device.type == "mps" and not (
+                hasattr(torch.backends, "mps") and torch.backends.mps.is_available()
+            ):
                 print("Warning: MPS requested but not available. Falling back to CPU.")
                 self.device = torch.device("cpu")
             else:
@@ -211,18 +216,25 @@ class Agent:
         self.temperature_raw = self.cfg.get("temperature", [1.0, 1.0, 1.0])
         self.temperature_by_options_raw = self.cfg.get("temperature_by_options", {})
         self.temperature = [clamp_temperature(t) for t in self.temperature_raw]
-        self.temperature_by_options = {k: clamp_temperature(v)
-                                       for k, v in self.temperature_by_options_raw.items()}
-        rejected = ["%s=%.4g" % (k, float(v)) for k, v in self.temperature_by_options_raw.items()
-                    if clamp_temperature(v) != float(v)]
-        rejected += ["temperature[%d]=%.4g" % (i, float(t)) for i, t in enumerate(self.temperature_raw)
-                     if clamp_temperature(t) != float(t)]
+        self.temperature_by_options = {k: clamp_temperature(v) for k, v in self.temperature_by_options_raw.items()}
+        rejected = [
+            "%s=%.4g" % (k, float(v))
+            for k, v in self.temperature_by_options_raw.items()
+            if clamp_temperature(v) != float(v)
+        ]
+        rejected += [
+            "temperature[%d]=%.4g" % (i, float(t))
+            for i, t in enumerate(self.temperature_raw)
+            if clamp_temperature(t) != float(t)
+        ]
         if rejected:
             warnings.warn(
                 "laya: this checkpoint ships temperatures outside [%g, %g] which would distort "
                 "confidence; clamping %s. Treat confidence from the affected buckets as uncalibrated."
                 % (TEMP_MIN, TEMP_MAX, ", ".join(rejected)),
-                RuntimeWarning, stacklevel=2)
+                RuntimeWarning,
+                stacklevel=2,
+            )
         self.dtype = amp_dtype(self.cfg.get("amp_dtype", "fp16"))
 
         if self.device.type == "cuda" and torch.cuda.get_device_capability(self.device)[0] < 8:
@@ -253,8 +265,9 @@ class Agent:
                 "  If this is a newer NVIDIA GPU (Blackwell / RTX 50-series), your PyTorch build\n"
                 "  may not support its CUDA architecture:\n"
                 "    pip install --pre torch --index-url https://download.pytorch.org/whl/nightly/cu128\n"
-                "  See https://pytorch.org/get-started/locally/\n"
-                % (fell_back_from, fell_back_why), flush=True)
+                "  See https://pytorch.org/get-started/locally/\n" % (fell_back_from, fell_back_why),
+                flush=True,
+            )
 
     @staticmethod
     def _to_internal(qdef: Dict) -> Dict:
@@ -378,8 +391,12 @@ class Agent:
 RLAgent = Agent
 
 
-def load(model_id_or_path: str = "convaiinnovations/laya", device: Optional[str] = None,
-         token: Optional[str] = None, subfolder: Optional[str] = None) -> Agent:
+def load(
+    model_id_or_path: str = "convaiinnovations/laya",
+    device: Optional[str] = None,
+    token: Optional[str] = None,
+    subfolder: Optional[str] = None,
+) -> Agent:
     """Load a Laya agent.
 
     `subfolder` picks one checkpoint out of a repo that bundles several:

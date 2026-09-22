@@ -7,6 +7,7 @@ Covers the two things routing is supposed to buy us:
 Run:  python3 tests/test_local_e2e.py [model_root]
 Defaults to ~/laya_models, expecting laya/, laya-multilingual/, laya-typed-decisions/.
 """
+
 import json
 import os
 import sys
@@ -26,9 +27,11 @@ from laya.router import Router  # noqa: E402
 
 ROOT = os.path.expanduser(sys.argv[1] if len(sys.argv) > 1 else "~/laya_models")
 DEVICE = os.environ.get("LAYA_DEVICE", "cpu")
-LOCAL = {"english": os.path.join(ROOT, "laya"),
-         "multilingual": os.path.join(ROOT, "laya-multilingual"),
-         "typed-decisions": os.path.join(ROOT, "laya-typed-decisions")}
+LOCAL = {
+    "english": os.path.join(ROOT, "laya"),
+    "multilingual": os.path.join(ROOT, "laya-multilingual"),
+    "typed-decisions": os.path.join(ROOT, "laya-typed-decisions"),
+}
 
 PASS, FAIL, NOTES = [], [], []
 
@@ -48,10 +51,18 @@ r = Router(models=LOCAL, device=DEVICE, max_loaded=1)
 Q = laya.triage_questions()
 LANGS = [
     ("english", "I was charged twice for invoice 4411, please refund it today.", "english"),
-    ("german", "Der Kunde wurde zweimal belastet und moechte eine Rueckerstattung fuer die "
-               "Rechnung die nicht korrekt ist und nicht bezahlt wurde", "multilingual"),
-    ("french", "Le client a ete facture deux fois et il demande un remboursement pour la "
-               "facture qui a ete payee le mois dernier avec la carte", "multilingual"),
+    (
+        "german",
+        "Der Kunde wurde zweimal belastet und moechte eine Rueckerstattung fuer die "
+        "Rechnung die nicht korrekt ist und nicht bezahlt wurde",
+        "multilingual",
+    ),
+    (
+        "french",
+        "Le client a ete facture deux fois et il demande un remboursement pour la "
+        "facture qui a ete payee le mois dernier avec la carte",
+        "multilingual",
+    ),
     ("hindi", "मुझसे इनवॉइस 4411 के लिए दो बार शुल्क लिया गया, कृपया आज ही धनवापसी करें।", "multilingual"),
     ("japanese", "請求書4411で二重に請求されました。本日中に返金してください。", "multilingual"),
     ("korean", "청구서 4411에 대해 두 번 청구되었습니다. 오늘 환불해 주세요.", "multilingual"),
@@ -63,18 +74,27 @@ LANGS = [
 ]
 for label, text, want in LANGS:
     d = r.route({"message": text}, Q)
-    ok("route/%-9s -> %-13s" % (label, d["model"]), d["model"] == want,
-       "" if d["model"] == want else "wanted %s (%s)" % (want, d["reason"]))
+    ok(
+        "route/%-9s -> %-13s" % (label, d["model"]),
+        d["model"] == want,
+        "" if d["model"] == want else "wanted %s (%s)" % (want, d["reason"]),
+    )
 
 # ---------------------------------------------------------------- 2. real inference, multilingual
 head("2. Multilingual checkpoint: same question, 8 languages (real forward passes)")
 ml = laya.load(LOCAL["multilingual"], device=DEVICE)
 print("   loaded multilingual on %s\n" % ml.device, flush=True)
 
-CATS = {"billing": "invoices, payments, refunds", "technical": "bugs, outages, integrations",
-        "sales": "pricing, demos, new purchases", "hr": "hiring, leave, payroll"}
-QD = {"dept": {"type": "choice", "instructions": "Which team should handle `message`?", "criteria": CATS},
-      "refund": {"type": "noul", "instructions": "Does the customer ask for money back?"}}
+CATS = {
+    "billing": "invoices, payments, refunds",
+    "technical": "bugs, outages, integrations",
+    "sales": "pricing, demos, new purchases",
+    "hr": "hiring, leave, payroll",
+}
+QD = {
+    "dept": {"type": "choice", "instructions": "Which team should handle `message`?", "criteria": CATS},
+    "refund": {"type": "noul", "instructions": "Does the customer ask for money back?"},
+}
 BILLING = [
     ("english", "I was charged twice for invoice 4411, please refund it today."),
     ("german", "Ich wurde zweimal fuer Rechnung 4411 belastet, bitte erstatten Sie den Betrag."),
@@ -91,9 +111,18 @@ for label, text in BILLING:
     a = ml.predict({"message": text}, QD)["answers"]
     hit = a["dept"]["choice"] == "billing"
     correct += hit
-    print("   %-9s dept=%-10s p=%.2f  refund=%.2f  %5.0fms  %s"
-          % (label, a["dept"]["choice"], max(a["dept"]["probabilities"].values()),
-             a["refund"]["noul"], (time.time() - t) * 1000, "OK" if hit else "<-- miss"), flush=True)
+    print(
+        "   %-9s dept=%-10s p=%.2f  refund=%.2f  %5.0fms  %s"
+        % (
+            label,
+            a["dept"]["choice"],
+            max(a["dept"]["probabilities"].values()),
+            a["refund"]["noul"],
+            (time.time() - t) * 1000,
+            "OK" if hit else "<-- miss",
+        ),
+        flush=True,
+    )
 ok("multilingual billing intent >= 6/8", correct >= 6, "got %d/8" % correct)
 
 # ---------------------------------------------------------------- 3. English checkpoint contrast
@@ -106,8 +135,11 @@ for label, text in ml_only.items():
     a = en.predict({"message": text}, QD)["answers"]
     hit = a["dept"]["choice"] == "billing"
     en_correct += hit
-    print("   %-9s dept=%-10s p=%.2f  %s" % (label, a["dept"]["choice"],
-          max(a["dept"]["probabilities"].values()), "OK" if hit else "<-- miss"), flush=True)
+    print(
+        "   %-9s dept=%-10s p=%.2f  %s"
+        % (label, a["dept"]["choice"], max(a["dept"]["probabilities"].values()), "OK" if hit else "<-- miss"),
+        flush=True,
+    )
 NOTES.append("English checkpoint on 4 non-English billing cases: %d/4 correct" % en_correct)
 
 # ---------------------------------------------------------------- 4. English applications
@@ -115,13 +147,28 @@ head("4. Application presets on the English checkpoint")
 
 print("\n   -- phishing / email triage --", flush=True)
 PHISH = [
-    ("phishing", "security@wellsf-argo-verify.com", "Urgent: your account is locked",
-     "Your account has been locked for security reasons. Verify immediately at "
-     "http://wellsfargo--verify.tj49.wsipv6.com or it will be closed permanently.", True),
-    ("legit billing", "ap@acme.com", "Invoice 4411 duplicate charge",
-     "Hi, we were billed twice for invoice 4411 in March. Could you refund the duplicate? Thanks.", False),
-    ("legit newsletter", "news@python.org", "PyCon 2026 schedule is live",
-     "The full conference schedule is now available on our website. Early bird tickets close Friday.", False),
+    (
+        "phishing",
+        "security@wellsf-argo-verify.com",
+        "Urgent: your account is locked",
+        "Your account has been locked for security reasons. Verify immediately at "
+        "http://wellsfargo--verify.tj49.wsipv6.com or it will be closed permanently.",
+        True,
+    ),
+    (
+        "legit billing",
+        "ap@acme.com",
+        "Invoice 4411 duplicate charge",
+        "Hi, we were billed twice for invoice 4411 in March. Could you refund the duplicate? Thanks.",
+        False,
+    ),
+    (
+        "legit newsletter",
+        "news@python.org",
+        "PyCon 2026 schedule is live",
+        "The full conference schedule is now available on our website. Early bird tickets close Friday.",
+        False,
+    ),
 ]
 eq = laya.email_questions()
 phish_ok = 0
@@ -131,9 +178,11 @@ for label, sender, subj, body, want_phish in PHISH:
     p = a["is_phishing"]["noul"]
     hit = (p > 0.5) == want_phish
     phish_ok += hit
-    print("   %-16s phishing=%.3f spam=%.3f cat=%-10s urgency=%.2f  %s"
-          % (label, p, a["is_spam"]["noul"], a["category"]["choice"], a["urgency"]["score"],
-             "OK" if hit else "<-- miss"), flush=True)
+    print(
+        "   %-16s phishing=%.3f spam=%.3f cat=%-10s urgency=%.2f  %s"
+        % (label, p, a["is_spam"]["noul"], a["category"]["choice"], a["urgency"]["score"], "OK" if hit else "<-- miss"),
+        flush=True,
+    )
 ok("phishing direction correct >= 2/3", phish_ok >= 2, "got %d/3" % phish_ok)
 
 print("\n   -- guardrails / prompt injection --", flush=True)
@@ -149,46 +198,89 @@ for label, prompt, want_attack in GUARD:
     risk = max(a["jailbreak"]["noul"], a["prompt_injection"]["noul"])
     hit = (risk > 0.5) == want_attack
     guard_ok += hit
-    print("   %-14s risk=%.3f (jb=%.2f inj=%.2f) harm=%.2f topic=%-18s %s"
-          % (label, risk, a["jailbreak"]["noul"], a["prompt_injection"]["noul"],
-             a["harm_severity"]["score"], a["topic"]["choice"], "OK" if hit else "<-- miss"), flush=True)
+    print(
+        "   %-14s risk=%.3f (jb=%.2f inj=%.2f) harm=%.2f topic=%-18s %s"
+        % (
+            label,
+            risk,
+            a["jailbreak"]["noul"],
+            a["prompt_injection"]["noul"],
+            a["harm_severity"]["score"],
+            a["topic"]["choice"],
+            "OK" if hit else "<-- miss",
+        ),
+        flush=True,
+    )
 ok("guardrail direction correct >= 2/3", guard_ok >= 2, "got %d/3" % guard_ok)
 
 print("\n   -- moderation --", flush=True)
-MOD = [("toxic", "You are a complete idiot and nobody wants you here.", True),
-       ("benign", "Thanks for the writeup, this fixed my bug.", False),
-       ("spam", "BUY CHEAP FOLLOWERS NOW >>> click here <<<", False)]
+MOD = [
+    ("toxic", "You are a complete idiot and nobody wants you here.", True),
+    ("benign", "Thanks for the writeup, this fixed my bug.", False),
+    ("spam", "BUY CHEAP FOLLOWERS NOW >>> click here <<<", False),
+]
 mq = laya.moderation_questions()
 mod_ok = 0
 for label, post, want_toxic in MOD:
     a = en.predict({"post": post}, mq)["answers"]
     hit = (a["toxic"]["noul"] > 0.5) == want_toxic
     mod_ok += hit
-    print("   %-8s toxic=%.3f harass=%.3f threat=%.3f spam=%.3f sev=%.2f  %s"
-          % (label, a["toxic"]["noul"], a["harassment"]["noul"], a["threat"]["noul"],
-             a["spam"]["noul"], a["severity"]["score"], "OK" if hit else "<-- miss"), flush=True)
+    print(
+        "   %-8s toxic=%.3f harass=%.3f threat=%.3f spam=%.3f sev=%.2f  %s"
+        % (
+            label,
+            a["toxic"]["noul"],
+            a["harassment"]["noul"],
+            a["threat"]["noul"],
+            a["spam"]["noul"],
+            a["severity"]["score"],
+            "OK" if hit else "<-- miss",
+        ),
+        flush=True,
+    )
 ok("moderation toxicity direction >= 2/3", mod_ok >= 2, "got %d/3" % mod_ok)
 
 print("\n   -- model routing preset --", flush=True)
-RT = [("trivial", "What time is it in Tokyo right now?"),
-      ("hard", "Refactor this service to use dependency injection and explain the trade-offs."),
-      ("sensitive", "Should I accept this settlement offer of $12,000 for my injury claim?")]
+RT = [
+    ("trivial", "What time is it in Tokyo right now?"),
+    ("hard", "Refactor this service to use dependency injection and explain the trade-offs."),
+    ("sensitive", "Should I accept this settlement offer of $12,000 for my injury claim?"),
+]
 rq = laya.router_questions()
 for label, req in RT:
     a = en.predict({"request": req}, rq)["answers"]
-    print("   %-10s difficulty=%.2f domain=%-16s tools=%.2f sensitive=%.2f"
-          % (label, a["difficulty"]["score"], a["domain"]["choice"],
-             a["needs_tools"]["noul"], a["is_sensitive"]["noul"]), flush=True)
+    print(
+        "   %-10s difficulty=%.2f domain=%-16s tools=%.2f sensitive=%.2f"
+        % (label, a["difficulty"]["score"], a["domain"]["choice"], a["needs_tools"]["noul"], a["is_sensitive"]["noul"]),
+        flush=True,
+    )
 
 print("\n   -- support triage --", flush=True)
-a = en.predict({"message": "I was charged twice for invoice 4411 and nobody has answered for "
-                           "three days. Refund the duplicate today or we are cancelling.",
-                "account_tier": "enterprise"}, laya.triage_questions())["answers"]
-print("   intent=%s (%.2f) urgent=%.2f frustration=%.2f refund=%.2f churn=%.2f"
-      % (a["intent"]["choice"], a["intent"]["confidence"], a["is_urgent"]["noul"],
-         a["frustration"]["score"], a["refund_requested"]["noul"], a["churn_risk"]["noul"]), flush=True)
-ok("triage picks a refund/billing intent",
-   a["intent"]["choice"] in ("refund", "billing_question"), "got %s" % a["intent"]["choice"])
+a = en.predict(
+    {
+        "message": "I was charged twice for invoice 4411 and nobody has answered for "
+        "three days. Refund the duplicate today or we are cancelling.",
+        "account_tier": "enterprise",
+    },
+    laya.triage_questions(),
+)["answers"]
+print(
+    "   intent=%s (%.2f) urgent=%.2f frustration=%.2f refund=%.2f churn=%.2f"
+    % (
+        a["intent"]["choice"],
+        a["intent"]["confidence"],
+        a["is_urgent"]["noul"],
+        a["frustration"]["score"],
+        a["refund_requested"]["noul"],
+        a["churn_risk"]["noul"],
+    ),
+    flush=True,
+)
+ok(
+    "triage picks a refund/billing intent",
+    a["intent"]["choice"] in ("refund", "billing_question"),
+    "got %s" % a["intent"]["choice"],
+)
 del en
 
 # ---------------------------------------------------------------- 5. Router end-to-end
@@ -203,8 +295,11 @@ res_hi = r2.predict({"message": "मुझसे दो बार शुल्�
 print("   hindi    -> %s | %s" % (res_hi["routing"]["model"], res_hi["routing"]["reason"]), flush=True)
 ok("router switched to multilingual", res_hi["routing"]["model"] == "multilingual")
 ok("router evicted to max_loaded=1", r2.loaded == ["multilingual"], "loaded=%s" % r2.loaded)
-ok("hindi answer is billing", res_hi["answers"]["dept"]["choice"] == "billing",
-   "got %s" % res_hi["answers"]["dept"]["choice"])
+ok(
+    "hindi answer is billing",
+    res_hi["answers"]["dept"]["choice"] == "billing",
+    "got %s" % res_hi["answers"]["dept"]["choice"],
+)
 
 res_td = r2.predict({"message": "anything"}, QD, model="typed-decisions")
 ok("explicit typed-decisions honoured", res_td["routing"]["model"] == "typed-decisions")
