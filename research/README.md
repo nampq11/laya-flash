@@ -1,7 +1,7 @@
 # Research
 
-Benchmark harnesses and raw results for the Laya checkpoints. This branch is the evidence behind
-the numbers quoted in the main README — nothing here is imported by the `laya` package.
+Benchmark harnesses and raw results for the Laya-Flash checkpoints. This branch is the evidence behind
+the numbers quoted in the main README — nothing here is imported by the `laya-flash` package.
 
 ## Scripts
 
@@ -26,7 +26,7 @@ installed its abseil runtime can deadlock model construction on macOS/Python 3.9
 
 ## Headline findings
 
-**Routing takes Laya from 23 to 45 of 51 languages.** On MASSIVE intent (20 options, random =
+**Routing takes Laya-Flash from 23 to 45 of 51 languages.** On MASSIVE intent (20 options, random =
 0.050) the English checkpoint macro-averages 0.227 and clears 3x random on 23 of 51 languages;
 the multilingual checkpoint reaches 0.366 and clears it on 45.
 
@@ -36,8 +36,8 @@ confidence never dropping below 0.885 at any accuracy level. This is why routing
 *before* the forward pass — confidence gating cannot catch it.
 
 **Both checkpoints ship over-confident.** Refitting one temperature per (question type, option
-count) on held-out data moves mean ECE 0.466 -> 0.081 (`laya`) and 0.314 -> 0.106
-(`laya-multilingual`, which ships with no fitted temperatures at all).
+count) on held-out data moves mean ECE 0.466 -> 0.081 (`laya-flash`) and 0.314 -> 0.106
+(`laya-flash-multilingual`, which ships with no fitted temperatures at all).
 
 **The base checkpoints are near chance on typed-decisions zero-shot** — 0.362 and 0.352 against
 a 0.318 random baseline and a 0.461 majority-class baseline. The published 0.766 belongs to the

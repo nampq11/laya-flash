@@ -1,4 +1,4 @@
-# Laya benchmarks
+# Laya-Flash benchmarks
 
 Every checkpoint answered **byte-identical questions** in each run (fixed seed). Jev figures are **third-party published, never measured here** — no TypeSafe API access — so sample sizes and prompts differ; treat them as indicative.
 
@@ -12,7 +12,7 @@ Every checkpoint answered **byte-identical questions** in each run (fixed seed).
 
 ## Headline
 
-| | Laya | Jev (published) |
+| | Laya-Flash | Jev (published) |
 |---|---|---|
 | typed-decisions (2,000 decisions) | **0.766** | 0.727 |
 | AG News (4 labels) | **0.953** | 0.910 |
@@ -26,7 +26,7 @@ Every checkpoint answered **byte-identical questions** in each run (fixed seed).
 
 ### All 51 MASSIVE languages — intent, 20 options (random = 0.050)
 
-| | laya | laya-multilingual |
+| | laya | laya-flash-multilingual |
 |---|---|---|
 | macro accuracy | 0.2269 | **0.3661** |
 | macro ECE *(lower better)* | 0.7331 | **0.3869** |
@@ -34,7 +34,7 @@ Every checkpoint answered **byte-identical questions** in each run (fixed seed).
 
 <details><summary><b>Per language (51)</b> — sorted by how much routing gains</summary>
 
-| lang | laya | laya-multilingual | Δ | laya ECE | multilingual ECE |
+| lang | laya | laya-flash-multilingual | Δ | laya ECE | multilingual ECE |
 |---|---|---|---|---|---|
 | `th` | 0.080 | 0.480 | +0.400 | 0.881 | 0.336 |
 | `ko` | 0.110 | 0.450 | +0.340 | 0.850 | 0.329 |
@@ -92,7 +92,7 @@ Every checkpoint answered **byte-identical questions** in each run (fixed seed).
 
 ### English vs the rest
 
-| task | | laya | laya-multilingual |
+| task | | laya | laya-flash-multilingual |
 |---|---|---|---|
 | MASSIVE intent — English | **0.783** | 0.657 |
 | MASSIVE intent — other languages | 0.306 | **0.451** |
@@ -107,9 +107,9 @@ The English checkpoint does not degrade gracefully outside English — it collap
 
 ## Themes — the application workflows
 
-Each is real labelled data, 400 cases, all three checkpoints. *held out* means the source was **not** in Laya's training mix.
+Each is real labelled data, 400 cases, all three checkpoints. *held out* means the source was **not** in Laya-Flash's training mix.
 
-| theme | laya | laya-multilingual | laya-typed-decisions | data |
+| theme | laya | laya-flash-multilingual | laya-flash-typed-decisions | data |
 |---|---|---|---|---|
 | Email spam | **0.993** | 0.993 | 0.958 | in training |
 | Phishing | 0.980 | **0.993** | 0.940 | in training |
@@ -125,7 +125,7 @@ Each is real labelled data, 400 cases, all three checkpoints. *held out* means t
 
 ### On the public datasets where Jev numbers exist
 
-| dataset | laya | laya-multilingual | laya-typed-decisions | Jev (published) |
+| dataset | laya | laya-flash-multilingual | laya-flash-typed-decisions | Jev (published) |
 |---|---|---|---|---|
 | AG News (4 labels) | 0.950 | 0.930 | **0.953** | 0.910 |
 | DAIR Emotion (6 labels) | 0.595 | 0.530 | **0.600** | 0.480 |
@@ -139,15 +139,15 @@ banking77 is the one clear loss, and it is architectural: a choice question's op
 
 | model | accuracy | soft acc | Brier | ECE | score MAE |
 |---|---|---|---|---|---|
-| `laya-typed-decisions` | **0.766** | 0.471 | 0.061 | 0.213 | 0.242 |
-| `laya` | 0.361 | 0.332 | 0.316 | 0.175 | 0.694 |
-| `laya-multilingual` | 0.342 | 0.326 | 0.439 | 0.285 | 0.687 |
+| `laya-flash-typed-decisions` | **0.766** | 0.471 | 0.061 | 0.213 | 0.242 |
+| `laya-flash` | 0.361 | 0.332 | 0.316 | 0.175 | 0.694 |
+| `laya-flash-multilingual` | 0.342 | 0.326 | 0.439 | 0.285 | 0.687 |
 | *Jev 1.13.0 (published)* | *0.727* | *0.580* | *0.148* | *0.144* | *0.391* |
 | *teacher ceiling* | *0.735* | *—* | *—* | *—* | *—* |
 | *majority class* | *0.461* | *—* | *—* | *—* | *—* |
 | *random guess* | *0.318* | *—* | *—* | *—* | *—* |
 
-| workflow | laya-typed-decisions |
+| workflow | laya-flash-typed-decisions |
 |---|---|
 | agent trace observability | 0.730 |
 | customer service | 0.764 |
@@ -160,29 +160,29 @@ banking77 is the one clear loss, and it is architectural: a choice question's op
 
 ## Speed (Tesla T4)
 
-| questions per call | laya | laya-multilingual |
+| questions per call | laya | laya-flash-multilingual |
 |---|---|---|
 | 1 | 39.5 ms | **32.8 ms** |
 | 5 | 84.5 ms | **40.1 ms** |
 | 10 | 158.6 ms | **72.3 ms** |
 | 50 | 771.3 ms | **337.4 ms** |
 
-103–332 questions/sec batched. Jev independently measured at 236-276 ms p50, so Laya answers one question roughly **6–7× faster**.
+103–332 questions/sec batched. Jev independently measured at 236-276 ms p50, so Laya-Flash answers one question roughly **6–7× faster**.
 
 ### Calibration
 
 | | as shipped | temperature refit | 
 |---|---|---|
-| `laya` | 0.466 | **0.081** |
-| `laya-multilingual` | 0.314 | **0.106** |
+| `laya-flash` | 0.466 | **0.081** |
+| `laya-flash-multilingual` | 0.314 | **0.106** |
 
-Both ship over-confident; `laya-multilingual` ships with no fitted temperatures at all. Refitting one temperature per (question type, option count) on held-out data is the single highest-value fix available, and takes ECE below Jev's measured 0.246.
+Both ship over-confident; `laya-flash-multilingual` ships with no fitted temperatures at all. Refitting one temperature per (question type, option count) on held-out data is the single highest-value fix available, and takes ECE below Jev's measured 0.246.
 
 ### Option-order robustness
 
 How often the answer changes when the options are permuted. Jev measured at 0.13.
 
-| suite | laya | laya-multilingual |
+| suite | laya | laya-flash-multilingual |
 |---|---|---|
 | massive_intent.en | 0.150 | 0.230 |
 | en.emotion | 0.040 | 0.090 |
@@ -199,4 +199,4 @@ At 20 options both are less order-stable than Jev — worth fixing with more agg
 - **Keep `choice` questions under ~20 options.**
 - **Both checkpoints ship over-confident.** Fit temperatures on your own data.
 - **Ordinal `score` is the weakest primitive** (SST-5 0.372).
-- `laya` collapses outside English; `laya-multilingual` is weaker on English. Route.
+- `laya-flash` collapses outside English; `laya-flash-multilingual` is weaker on English. Route.

@@ -1,19 +1,18 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/NandhaKishorM/laya/main/assets/logo-lockup-dark.png" />
-    <img src="https://raw.githubusercontent.com/NandhaKishorM/laya/main/assets/logo-lockup.png" alt="Laya" width="330" />
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/nampq11/laya-flash/main/assets/logo-lockup-dark.png" />
+    <img src="https://raw.githubusercontent.com/nampq11/laya-flash/main/assets/logo-lockup.png" alt="Laya-Flash" width="330" />
   </picture>
 </p>
 
-**Multilingual, non-autoregressive System 1 decision engine.** Typed decisions over 100+ languages in a single forward pass — 33 ms — trained with reinforcement learning against strictly proper scoring rules (RLCD), with a router that picks the right checkpoint per request.
+**Multilingual, non-autoregressive System 1 decision engine.** Typed decisions over 100+ languages in a single forward pass — 33 ms — trained with reinforcement learning against strictly proper scoring rules (RLCD), with a router that picks the right checkpoint per request. laya-flash makes the encoder swappable: the decision head now plugs into **LFM2.5-Encoder-230M** natively.
 
 <div align="center">
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/15d4Yv__KHeHjshVb-6PRTfqVllxih2S3?usp=sharing)
-[![PyPI version](https://img.shields.io/pypi/v/laya.svg)](https://pypi.org/project/laya/)
-[![Hugging Face Model](https://img.shields.io/badge/%F0%9F%A4%97%20Model-convaiinnovations%2Flaya-blue)](https://huggingface.co/convaiinnovations/laya)
-[![Multilingual](https://img.shields.io/badge/%F0%9F%A4%97%20Model-laya--multilingual-blue)](https://huggingface.co/convaiinnovations/laya-multilingual)
-[![Hugging Face Space](https://img.shields.io/badge/%F0%9F%A4%97%20Space-laya--demo-orange)](https://huggingface.co/spaces/convaiinnovations/laya-demo)
+[![PyPI version](https://img.shields.io/pypi/v/laya-flash.svg)](https://pypi.org/project/laya-flash/)
+[![Hugging Face Model](https://img.shields.io/badge/%F0%9F%A4%97%20Model-nampham1106%2Flaya--flash-blue)](https://huggingface.co/nampham1106/laya-flash)
+[![Multilingual](https://img.shields.io/badge/%F0%9F%A4%97%20Model-laya--flash--multilingual-blue)](https://huggingface.co/nampham1106/laya-flash-multilingual)
 [![Dev.to Article](https://img.shields.io/badge/dev.to-Read%20Article-0A0A0A?logo=devdotto&logoColor=white)](https://dev.to/nandakishor_m_6cc0adfde9f/i-built-non-autoregressive-decision-models-a-year-ago-then-a-frontier-lab-called-it-a-18me)
 [![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-nandakishorm-FFDD00?logo=buy-me-a-coffee&logoColor=black)](https://www.buymeacoffee.com/nandakishorm)
 [![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](https://opensource.org/licenses/Apache-2.0)
@@ -21,25 +20,37 @@
 </div>
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/NandhaKishorM/laya/main/assets/laya_vs_jev_full.png" alt="Laya versus TypeSafe Jev: accuracy on shared public datasets, every application workflow, all 51 languages, speed, calibration, and the cost of not preloading" width="100%" />
+  <img src="https://raw.githubusercontent.com/nampq11/laya-flash/main/assets/laya_vs_jev_full.png" alt="Laya-Flash versus TypeSafe Jev: accuracy on shared public datasets, every application workflow, all 51 languages, speed, calibration, and the cost of not preloading" width="100%" />
 </p>
 
-Laya evaluates typed questions (`choice`, `score`, `noul`) over any state (text, email, ticket or JSON document) in **a single forward pass** — 33 ms for one question, 7.2 ms/question batched, measured on a T4. No text generation, so nothing to parse and nothing to hallucinate.
+Laya-Flash evaluates typed questions (`choice`, `score`, `noul`) over any state (text, email, ticket or JSON document) in **a single forward pass** — 33 ms for one question, 7.2 ms/question batched, measured on a T4. No text generation, so nothing to parse and nothing to hallucinate.
 
 Three checkpoints, and a `Router` that picks between them per request:
 
 | | encoder | params | context | use it for |
 |---|---|---|---|---|
-| [`laya`](https://huggingface.co/convaiinnovations/laya) | ModernBERT-large | 421M | 512 | English |
-| [`laya-multilingual`](https://huggingface.co/convaiinnovations/laya-multilingual) | mmBERT-base | 322M | 1024 | 100+ languages, 2x faster |
-| [`laya-typed-decisions`](https://huggingface.co/convaiinnovations/laya-typed-decisions) | ModernBERT-large | 421M | 1024 | the typed-decisions workflows |
+| [`laya-flash`](https://huggingface.co/nampham1106/laya-flash) | ModernBERT-large | 421M | 512 | English |
+| [`laya-flash-multilingual`](https://huggingface.co/nampham1106/laya-flash-multilingual) | mmBERT-base | 322M | 1024 | 100+ languages, 2x faster |
+| [`laya-flash-typed-decisions`](https://huggingface.co/nampham1106/laya-flash-typed-decisions) | ModernBERT-large | 421M | 1024 | the typed-decisions workflows |
+
+---
+
+## What's different from laya?
+
+laya-flash forks [laya](https://github.com/NandhaKishorM/laya) around one change: **the encoder is now a swappable backbone**, and the first new backbone is LiquidAI's **LFM2.5-Encoder-230M**.
+
+* One `LayaFlashBackbone` contract — any HF encoder binds to it in place (`as_backbone`), parameters and state_dict keys untouched.
+* LFM2.5 runs through transformers' native support with bidirectional-attention patches, **no `trust_remote_code`**, and reproduces the official remote-code path bit-exactly (`LAYA_LFM2_E2E=1 python tests/test_lfm2_e2e.py`).
+* `DecisionModel` sizes its head from the backbone's `hidden_size` (LFM2.5: 1024), or a `head_dim` projection reuses an existing head unchanged.
+
+The benchmark numbers below are still the shipped ModernBERT/mmBERT checkpoints — **the LFM2.5-backed model has not been benchmarked yet**, and no fine-tuned LFM2 checkpoint is published. Details in [Backbones](#backbones).
 
 ---
 
 ## Installation
 
 ```bash
-pip install laya
+pip install laya-flash
 ```
 
 Python 3.10 or newer. The dependencies set that floor: `huggingface_hub` 1.x, `transformers` 5.x and `torch` 2.14 all require 3.10.
@@ -48,11 +59,11 @@ Python 3.10 or newer. The dependencies set that floor: `huggingface_hub` 1.x, `t
 
 ## Quickstart: Route Mode (Recommended)
 
-Laya ships three checkpoints. The built-in **`Router`** is the recommended entry point: it evaluates any state in any language, automatically detects scripts and languages in sub-milliseconds, and dispatches to the optimal checkpoint in a single forward pass.
+Laya-Flash ships three checkpoints. The built-in **`Router`** is the recommended entry point: it evaluates any state in any language, automatically detects scripts and languages in sub-milliseconds, and dispatches to the optimal checkpoint in a single forward pass.
 
 ```python
-import laya
-from laya import Router
+import laya_flash
+from laya_flash import Router
 
 # Preload checkpoints into memory for instant sub-35ms routing
 router = Router(preload=True)
@@ -91,12 +102,12 @@ questions = {
     }
 }
 
-# 3. English state -> automatically routed to laya (ModernBERT-large, 39.5 ms)
+# 3. English state -> automatically routed to laya-flash (ModernBERT-large, 39.5 ms)
 res_en = router.predict(state, questions)
 print("Department :", res_en["answers"]["department"]["choice"])  # -> billing (confidence: 0.94)
 print("Routing    :", res_en["routing"]["model"])                 # -> english
 
-# 4. Hindi state -> automatically routed to laya-multilingual (mmBERT-base, 32.8 ms)
+# 4. Hindi state -> automatically routed to laya-flash-multilingual (mmBERT-base, 32.8 ms)
 res_hi = router.predict({"body": "मुझसे दो बार शुल्क लिया गया, कृपया पैसे वापस करें।"}, questions)
 print("Department :", res_hi["answers"]["department"]["choice"])  # -> billing (confidence: 0.86)
 print("Routing    :", res_hi["routing"]["model"])                 # -> multilingual
@@ -111,7 +122,7 @@ Every result carries full routing metadata explaining why the choice was made:
 res_hi["routing"]
 # {
 #   'model': 'multilingual',
-#   'repo': 'convaiinnovations/laya/multilingual',
+#   'repo': 'nampham1106/laya-flash/multilingual',
 #   'reason': 'non-Latin script (devanagari, 100% of letters); the English checkpoint cannot read it'
 # }
 ```
@@ -127,7 +138,7 @@ router.route({"body": "Der Kunde wurde zweimal belastet"}, questions).reason
 
 On a shared benchmark (17,416 questions, one T4 GPU, identical questions per model):
 
-| Benchmark / Task | English (`laya`) | Multilingual (`laya-multilingual`) | `Router` (Routed) |
+| Benchmark / Task | English (`laya-flash`) | Multilingual (`laya-flash-multilingual`) | `Router` (Routed) |
 |---|---|---|---|
 | MASSIVE intent, English | **0.783** | 0.657 | **0.783** |
 | MASSIVE intent, 13 other languages | 0.306 | **0.451** | **0.451** |
@@ -173,12 +184,12 @@ router.unload()                     # free memory
 If you only need a single checkpoint for a dedicated pipeline, you can load models directly:
 
 ```python
-import laya
+import laya_flash
 
 # 1. Load a specific checkpoint directly from the hub
-agent = laya.load("convaiinnovations/laya")                           # English root
-agent_ml = laya.load("convaiinnovations/laya", subfolder="multilingual") # 100+ languages
-agent_td = laya.load("convaiinnovations/laya", subfolder="typed-decisions")
+agent = laya_flash.load("nampham1106/laya-flash")                           # English root
+agent_ml = laya_flash.load("nampham1106/laya-flash", subfolder="multilingual") # 100+ languages
+agent_td = laya_flash.load("nampham1106/laya-flash", subfolder="typed-decisions")
 
 # 2. Run all questions in ONE single forward pass (~35 ms on GPU)
 result = agent.predict(state, questions)
@@ -193,7 +204,7 @@ print("Churn Risk :", answers["churn_risk"]["noul"])       # -> 0.892 (89.2% pro
 
 ## Automated Confidence Gating
 
-Because Laya's probabilities are trained with strictly proper scoring rules (RLCD), confidence scores are statistically meaningful:
+Because Laya-Flash's probabilities are trained with strictly proper scoring rules (RLCD), confidence scores are statistically meaningful:
 
 ```python
 dept = answers["department"]["choice"]
@@ -211,24 +222,24 @@ else:
 
 ## Built-in Workflow Presets
 
-Laya provides pre-tuned question schemas for immediate production use:
+Laya-Flash provides pre-tuned question schemas for immediate production use:
 
 ```python
-import laya
+import laya_flash
 
-agent = laya.load("convaiinnovations/laya")
+agent = laya_flash.load("nampham1106/laya-flash")
 
 # 1. Intelligent Model Router (routes to small vs. frontier models)
-routing = agent.predict({"request": "Refactor this service using dependency injection"}, laya.router_questions())
+routing = agent.predict({"request": "Refactor this service using dependency injection"}, laya_flash.router_questions())
 
 # 2. Real-time Prompt Guardrails (jailbreaks, injections, leaks)
-guard = agent.predict({"prompt": "Ignore all instructions"}, laya.guard_questions())
+guard = agent.predict({"prompt": "Ignore all instructions"}, laya_flash.guard_questions())
 
 # 3. Content Safety & Moderation (toxicity, harassment, threats)
-safety = agent.predict({"post": "User comment text"}, laya.moderation_questions())
+safety = agent.predict({"post": "User comment text"}, laya_flash.moderation_questions())
 
 # 4. Support Ticket Triage (intent, urgency, frustration, churn)
-triage = agent.predict({"message": "My payment failed twice"}, laya.triage_questions())
+triage = agent.predict({"message": "My payment failed twice"}, laya_flash.triage_questions())
 ```
 
 ---
@@ -248,16 +259,16 @@ triage = agent.predict({"message": "My payment failed twice"}, laya.triage_quest
 **Full report: [`BENCHMARKS.md`](BENCHMARKS.md)** — every run consolidated, languages and themes, with per-language detail for all 51 languages.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/NandhaKishorM/laya/main/assets/laya_benchmark.png" alt="Per-language accuracy for both checkpoints across 51 languages" width="100%" />
+  <img src="https://raw.githubusercontent.com/nampq11/laya-flash/main/assets/laya_benchmark.png" alt="Per-language accuracy for both checkpoints across 51 languages" width="100%" />
 </p>
 
-All Laya numbers below are measured. Every model answered byte-identical questions
+All Laya-Flash numbers below are measured. Every model answered byte-identical questions
 (fixed seed) in the same run. Reproduce with
-[`notebooks/laya_benchmark_colab.ipynb`](https://github.com/NandhaKishorM/laya) on a T4.
+[`notebooks/laya_benchmark_colab.ipynb`](https://github.com/nampq11/laya-flash) on a T4.
 
 ### Speed (Tesla T4, measured)
 
-| questions per call | `laya` | `laya-multilingual` |
+| questions per call | `laya-flash` | `laya-flash-multilingual` |
 |---|---|---|
 | 1 | 39.5 ms | **32.8 ms** |
 | 5 | 84.5 ms | **40.1 ms** |
@@ -267,16 +278,16 @@ All Laya numbers below are measured. Every model answered byte-identical questio
 Batched throughput reaches 103-332 questions/sec on a single T4. For reference, TypeSafe Jev
 has been independently measured at 236-276 ms p50
 ([AbdelStark](https://github.com/AbdelStark/jev-benchmarks),
-[nibzard](https://github.com/nibzard/decision-model-benchmark)) -- Laya answers a single
+[nibzard](https://github.com/nibzard/decision-model-benchmark)) -- Laya-Flash answers a single
 question roughly **6-7x faster**.
 
-### Laya (with routing) vs Jev
+### Laya-Flash (with routing) vs Jev
 
-Every Laya figure is what `Router().predict(...)` actually returns — the checkpoint the router
+Every Laya-Flash figure is what `Router().predict(...)` actually returns — the checkpoint the router
 selects for that input, not a hand-picked best of three. Jev figures are **third-party
 published, never measured here** (no TypeSafe API access), so sample sizes and prompts differ.
 
-| | Jev 1.13.0 | Laya (routed) | |
+| | Jev 1.13.0 | Laya-Flash (routed) | |
 |---|---|---|---|
 | typed-decisions, 2,000 decisions | 0.727 | **0.766** | +0.039 |
 | AG News, 4 labels | 0.910 | **0.950** | +0.040 |
@@ -293,9 +304,9 @@ failure for anything branching on confidence.
 
 #### Where Jev leads
 
-* **High-cardinality label spaces (>20 options at default settings):** On Banking77, Jev scores 0.870 (on 72 labels) while Laya scores 0.425 (on 77 labels at default 256-token head budget). This is an architectural token-budget constraint: options share a fixed `head_max_len` budget (192 tokens on English, 256 on multilingual), so 77 options receive only ~3 to 4 tokens per label, causing text to become indistinguishable. Jev supports up to 255 options out-of-the-box. While `laya-multilingual` supports 1,024 context (and up to 8,192 in the encoder) and you can raise `agent.cfg["head_max_len"] = 512` at runtime, Jev is currently better suited for 50+ options in a single prompt without tuning. `predict_shortlist` (see [Honest limits](#honest-limits)) keeps the top `k` labels with a caller-supplied embedding, then runs one forward pass on that shortlist.
-* **Soft distribution matching:** On typed-decisions, while Laya achieves higher argmax accuracy (0.766 vs 0.727), Jev achieves higher soft accuracy (0.580 vs 0.471) against the teacher's full probability distributions.
-* **Out-of-the-box raw calibration:** Before temperature scaling, the base checkpoint has higher raw ECE (0.213 vs 0.144). Laya achieves its 0.081 ECE after domain temperature fitting.
+* **High-cardinality label spaces (>20 options at default settings):** On Banking77, Jev scores 0.870 (on 72 labels) while Laya-Flash scores 0.425 (on 77 labels at default 256-token head budget). This is an architectural token-budget constraint: options share a fixed `head_max_len` budget (192 tokens on English, 256 on multilingual), so 77 options receive only ~3 to 4 tokens per label, causing text to become indistinguishable. Jev supports up to 255 options out-of-the-box. While `laya-flash-multilingual` supports 1,024 context (and up to 8,192 in the encoder) and you can raise `agent.cfg["head_max_len"] = 512` at runtime, Jev is currently better suited for 50+ options in a single prompt without tuning. `predict_shortlist` (see [Honest limits](#honest-limits)) keeps the top `k` labels with a caller-supplied embedding, then runs one forward pass on that shortlist.
+* **Soft distribution matching:** On typed-decisions, while Laya-Flash achieves higher argmax accuracy (0.766 vs 0.727), Jev achieves higher soft accuracy (0.580 vs 0.471) against the teacher's full probability distributions.
+* **Out-of-the-box raw calibration:** Before temperature scaling, the base checkpoint has higher raw ECE (0.213 vs 0.144). Laya-Flash achieves its 0.081 ECE after domain temperature fitting.
 
 Full detail, including every workflow and all 51 languages: **[`BENCHMARKS.md`](BENCHMARKS.md)**.
 
@@ -305,9 +316,9 @@ Full detail, including every workflow and all 51 languages: **[`BENCHMARKS.md`](
 
 | model | accuracy | soft acc | Brier | ECE | score MAE |
 |---|---|---|---|---|---|
-| **`laya-typed-decisions`** | **0.766** | 0.471 | **0.062** | 0.213 | **0.242** |
-| `laya` | 0.362 | 0.332 | 0.316 | 0.175 | 0.694 |
-| `laya-multilingual` | 0.342 | 0.326 | 0.439 | 0.285 | 0.687 |
+| **`laya-flash-typed-decisions`** | **0.766** | 0.471 | **0.062** | 0.213 | **0.242** |
+| `laya-flash` | 0.362 | 0.332 | 0.316 | 0.175 | 0.694 |
+| `laya-flash-multilingual` | 0.342 | 0.326 | 0.439 | 0.285 | 0.687 |
 | *Jev 1.13.0 (published)* | *0.727* | *0.580* | *0.148* | *0.144* | *0.391* |
 | *teacher self-agreement ceiling* | *0.735* | | | | |
 | *per-question majority class* | *0.461* | | | | |
@@ -327,7 +338,7 @@ All of the capability on this benchmark comes from fine-tuning.
 
 ### Multilingual (51 languages, MASSIVE intent, 20 options, random = 0.050)
 
-| | `laya` | `laya-multilingual` |
+| | `laya-flash` | `laya-flash-multilingual` |
 |---|---|---|
 | English | **0.783** | 0.657 |
 | 13 other languages | 0.306 | **0.451** |
@@ -342,7 +353,7 @@ forward pass.
 
 ### English tasks
 
-| task | `laya` | `laya-multilingual` | note |
+| task | `laya-flash` | `laya-flash-multilingual` | note |
 |---|---|---|---|
 | AG News | **0.947** | 0.937 | in training mix |
 | BoolQ | **0.830** | 0.787 | in training mix |
@@ -353,26 +364,26 @@ forward pass.
 ### Calibration
 
 Both checkpoints are over-confident as shipped. Refitting one temperature per (question type,
-option count) on held-out data moves mean ECE **0.466 -> 0.081** (`laya`) and
-**0.314 -> 0.106** (`laya-multilingual`). `laya-multilingual` ships with no fitted
+option count) on held-out data moves mean ECE **0.466 -> 0.081** (`laya-flash`) and
+**0.314 -> 0.106** (`laya-flash-multilingual`). `laya-flash-multilingual` ships with no fitted
 temperatures at all, so fit them before relying on its probabilities.
 
 ### Honest limits
 
 * **The base checkpoints are near chance on typed-decisions zero-shot** -- 0.362 and 0.352
   against a 0.318 random baseline and a 0.461 majority-class baseline. The 0.766 figure comes
-  from the checkpoint fine-tuned on that benchmark's own training split. Laya is a fast base to
+  from the checkpoint fine-tuned on that benchmark's own training split. Laya-Flash is a fast base to
   specialise, not a zero-shot decision engine.
 * **High-cardinality choice questions and token budgets:** Sequences split into an option prompt budget (`head_max_len`) and the remaining document/state budget (`max_len - head_max_len`):
-  * `laya` (English) defaults to 512 context (`head_max_len = 192`, ~320 tokens for state).
-  * `laya-multilingual` and `laya-typed-decisions` default to 1,024 context (`head_max_len = 256`, ~768 tokens for state; mmBERT-base encoder supports up to 8,192 with RoPE).
+  * `laya-flash` (English) defaults to 512 context (`head_max_len = 192`, ~320 tokens for state).
+  * `laya-flash-multilingual` and `laya-flash-typed-decisions` default to 1,024 context (`head_max_len = 256`, ~768 tokens for state; mmBERT-base encoder supports up to 8,192 with RoPE).
   At default settings, a 77-option question like Banking77 allocates only `(256 - 16) // 77` ≈ 3–4 tokens per label, which causes accuracy to fall off sharply (0.425 vs Jev's 0.870). If evaluating 50+ options in a single question:
   1. Raise `agent.cfg["head_max_len"] = 512` and `agent.cfg["max_len"] = 1024` (or up to 2048 / 4096 / 8192) so every option has enough tokens to remain distinct.
   2. Or shortlist with embeddings and run one forward pass on the top `k` labels (`predict_shortlist`, example below). `predict` and `system_one` still score every criterion they are given.
   3. Or split the label set yourself into a coarse question and a fine question.
 
 ```python
-import laya
+import laya_flash
 
 questions = {
     "intent": {
@@ -385,11 +396,11 @@ questions = {
         },
     }
 }
-result = laya.predict_shortlist(
+result = laya_flash.predict_shortlist(
     agent,
     {"text": "I was charged twice for a transfer"},
     questions,
-    embed_fn=laya.embed_fn_from_agent(agent),  # or any callable: texts -> (n, dim)
+    embed_fn=laya_flash.embed_fn_from_agent(agent),  # or any callable: texts -> (n, dim)
     k=20,
 )
 result["shortlist"]["intent"]["labels"]  # the top 20 labels sent to the model
@@ -400,22 +411,21 @@ result["shortlist"]["intent"]["labels"]  # the top 20 labels sent to the model
 [Issue #102](https://github.com/NandhaKishorM/laya/issues/102) reports that a top-20 zero-shot shortlist moved a BANKING77 run from 54.3% to 60.8% on the reporter's setup. Those figures are the reporter's; this repository has not remeasured them.
 
 * Ordinal `score` questions are the weakest primitive (SST-5 0.372).
-* `laya` collapses outside English; `laya-multilingual` is weaker on English. Route, or pick
+* `laya-flash` collapses outside English; `laya-flash-multilingual` is weaker on English. Route, or pick
   deliberately.
 
 ---
 
-## Live Demo & Resources
+## Resources
 
-* **Hugging Face Model:** [convaiinnovations/laya](https://huggingface.co/convaiinnovations/laya)
-* **Interactive Web Demo:** [convaiinnovations/laya-demo](https://huggingface.co/spaces/convaiinnovations/laya-demo)
-* **Engineering Writeup:** [Read the full story on Dev.to](https://dev.to/nandakishor_m_6cc0adfde9f/i-built-non-autoregressive-decision-models-a-year-ago-then-a-frontier-lab-called-it-a-18me)
+* **Hugging Face Model:** [nampham1106/laya-flash](https://huggingface.co/nampham1106/laya-flash)
+* **Engineering Writeup (laya):** [Read the full story on Dev.to](https://dev.to/nandakishor_m_6cc0adfde9f/i-built-non-autoregressive-decision-models-a-year-ago-then-a-frontier-lab-called-it-a-18me)
 
 ---
 
 ## Fine-Tuning
 
-Fine-tune Laya on your own domain data. The notebook runs on Kaggle's free 2xT4 GPUs and does
+Fine-tune Laya-Flash on your own domain data. The notebook runs on Kaggle's free 2xT4 GPUs and does
 the whole loop: build the dataset, train with RLCD (proper-scoring-rule rewards, GRPO-style
 policy gradient), fit calibration temperatures, evaluate, and push the result to the Hub.
 
@@ -424,7 +434,7 @@ policy gradient), fit calibration temperatures, evaluate, and push the result to
 Fine-tuning is where most of the value is. On the typed-decisions benchmark the base
 checkpoints score near chance zero-shot (0.36 and 0.35 against a 0.318 random baseline),
 while the fine-tuned checkpoint reaches **0.766** on the same 2,000 decisions -- above
-TypeSafe Jev's published 0.727 and above the 0.735 teacher self-agreement ceiling. Treat Laya
+TypeSafe Jev's published 0.727 and above the 0.735 teacher self-agreement ceiling. Treat Laya-Flash
 as a fast base to specialise, not as a zero-shot decision engine.
 
 Runtime on 2xT4 is roughly 4-5 hours for 4 epochs over ~30k questions.
@@ -434,17 +444,17 @@ Runtime on 2xT4 is roughly 4-5 hours for 4 epochs over ~30k questions.
 ## Backbones
 
 The encoder under the decision head is a swappable module behind one contract
-([`laya/backbones.py`](laya/backbones.py)):
+([`laya_flash/backbones.py`](laya_flash/backbones.py)):
 
 ```python
-class LayaBackbone(nn.Module):
+class LayaFlashBackbone(nn.Module):
     hidden_size: int                                   # width the decision head consumes
     def forward(self, input_ids, attention_mask) -> Tensor   # [batch, seq, hidden_size]
     def prepare_tokenizer(self, tok) -> None           # optional special-token fixups
 ```
 
 ```
-                 LayaBackbone (abstract)
+                 LayaFlashBackbone (abstract)
                 /                        \
    as_backbone(any HF encoder)      lfm2_backbone("LiquidAI/LFM2.5-Encoder-230M")
    ModernBERT-large / mmBERT / ...  hidden_size 1024, bidirectional patches,
@@ -461,14 +471,14 @@ across backbones instead: the backbone then carries a small `head_proj` Linear
 (e.g. LFM2's 1024 -> 768 to match an mmBERT-sized head). Published checkpoints do
 not set it, so their weights are unchanged.
 
-**Using LFM2.5-Encoder-230M** (needs `pip install 'laya[lfm2]'`, i.e.
+**Using LFM2.5-Encoder-230M** (needs `pip install 'laya-flash[lfm2]'`, i.e.
 `transformers>=4.55`):
 
 ```python
-import laya
+import laya_flash
 
-enc = laya.lfm2_backbone("LiquidAI/LFM2.5-Encoder-230M")   # or head_dim=768 to project
-model = laya.common.build_model(
+enc = laya_flash.lfm2_backbone("LiquidAI/LFM2.5-Encoder-230M")   # or head_dim=768 to project
+model = laya_flash.common.build_model(
     {"encoder": "LiquidAI/LFM2.5-Encoder-230M", "head_layers": 2, "act_costs": {"act": 0.0}},
 )   # dispatches on model_type/config: LFM2 never goes through AutoModel (it would
     # build the causal native Lfm2Model and silently drop the pretrained weights)
@@ -480,22 +490,23 @@ Details worth knowing:
   `prepare_tokenizer` maps cls -> `<|startoftext|>` and sep -> `<|endoftext|>`,
   reusing existing ids so the embedding matrix still matches; `Agent` calls it
   automatically after loading.
-* **Bidirectionality.** LFM2 ships as a causal decoder; laya vendors LiquidAI's
+* **Bidirectionality.** LFM2 ships as a causal decoder; laya-flash vendors LiquidAI's
   Apache-2.0 bidirectional patches (full attention + non-causal short conv) so the
   `[MASK]` markers see the whole sequence. `LAYA_LFM2_E2E=1 python tests/test_lfm2_e2e.py`
   checks the outputs are bit-identical to the official `trust_remote_code` path.
   The patches apply process-wide to transformers' shared lfm2 module (upstream's
   remote-code file does the same), so serve causal LFM2 chat models in another process.
-* **No published LFM2 checkpoint yet.** A LFM2-backed Laya still needs a
+* **No published LFM2 checkpoint yet.** A LFM2-backed Laya-Flash still needs a
   fine-tuning run through the notebook to produce calibrated weights; the
   integration is exercised offline by `tests/test_backbones.py` and, with real
   weights, by `LAYA_LFM2_E2E=1 python tests/test_lfm2_e2e.py`.
 
 ---
 
-## Support the Project
+## Support the Original Project
 
-If Laya helps your research or products, consider supporting independent research:
+laya-flash is a fork; the upstream engine it builds on was developed independently. If it helps
+your research or products, consider supporting the original author:
 
 <p align="left">
   <a href="https://www.buymeacoffee.com/nandakishorm" target="_blank">
@@ -507,4 +518,5 @@ If Laya helps your research or products, consider supporting independent researc
 
 ## License
 
-Apache 2.0. Developed by Convai Innovations.
+Apache 2.0. laya-flash is a fork of [laya](https://github.com/NandhaKishorM/laya) by Convai
+Innovations.

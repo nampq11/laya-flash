@@ -24,11 +24,11 @@ import numpy as np  # noqa: E402
 import torch  # noqa: E402
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.join(REPO, "laya"))
+sys.path.insert(0, os.path.join(REPO, "laya_flash"))
 
-import laya  # noqa: E402
-from laya.lang import analyse  # noqa: E402
-from laya.router import Router  # noqa: E402
+import laya_flash  # noqa: E402
+from laya_flash.lang import analyse  # noqa: E402
+from laya_flash.router import Router  # noqa: E402
 
 ROOT = os.path.expanduser("~/laya_models")
 MODELS = {"english": os.path.join(ROOT, "laya"),
@@ -66,7 +66,7 @@ def timed(fn, warmup=3, reps=15):
 def main():
     res = {"meta": {"timestamp": time.strftime("%Y-%m-%d %H:%M:%S"), "device": "cpu",
                     "torch": torch.__version__, "threads": torch.get_num_threads(),
-                    "laya": laya.__version__,
+                    "laya": laya_flash.__version__,
                     "note": "CPU numbers. GPU (T4) reference from the Colab run is in "
                             "laya_benchmark_results.json -> latency."}}
 
@@ -85,7 +85,7 @@ def main():
     raw, load_times = {}, {}
     for mname, path in MODELS.items():
         t = time.perf_counter()
-        ag = laya.load(path, device="cpu")
+        ag = laya_flash.load(path, device="cpu")
         load_times[mname] = round((time.perf_counter() - t) * 1000, 1)
         per = {}
         for n in (1, 5, 10, 50):

@@ -27,10 +27,10 @@ import numpy as np  # noqa: E402
 import torch  # noqa: E402
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.join(REPO, "laya"))
+sys.path.insert(0, os.path.join(REPO, "laya_flash"))
 
-import laya  # noqa: E402
-from laya.common import QTYPES, build_sequence, collate_items, render_options, temp_bucket  # noqa: E402
+import laya_flash  # noqa: E402
+from laya_flash.common import QTYPES, build_sequence, collate_items, render_options, temp_bucket  # noqa: E402
 
 ROOT = os.path.expanduser("~/laya_models")
 MODELS = {"english": os.path.join(ROOT, "laya"),
@@ -145,7 +145,7 @@ def metrics(rows):
 
 
 def load(name):
-    ag = laya.load(MODELS[name], device="cpu")
+    ag = laya_flash.load(MODELS[name], device="cpu")
     ag.model.eval()
     return ag
 
@@ -315,7 +315,7 @@ def main():
     a = ap.parse_args()
 
     results = {"meta": {"timestamp": time.strftime("%Y-%m-%d %H:%M:%S"), "device": "cpu",
-                        "torch": torch.__version__, "laya": laya.__version__,
+                        "torch": torch.__version__, "laya": laya_flash.__version__,
                         "threads": torch.get_num_threads()}}
     if os.path.exists(OUT):
         try:
