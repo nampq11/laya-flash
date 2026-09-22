@@ -429,7 +429,7 @@ Fine-tune Laya-Flash on your own domain data. The notebook runs on Kaggle's free
 the whole loop: build the dataset, train with RLCD (proper-scoring-rule rewards, GRPO-style
 policy gradient), fit calibration temperatures, evaluate, and push the result to the Hub.
 
-* **[`notebooks/laya_finetune_typed_decisions_2xT4_kaggle.ipynb`](notebooks/laya_finetune_typed_decisions_2xT4_kaggle.ipynb)**
+* **[`notebooks/laya_flash_finetune_typed_decisions_2xT4_kaggle.ipynb`](notebooks/laya_flash_finetune_typed_decisions_2xT4_kaggle.ipynb)**
 
 Fine-tuning is where most of the value is. On the typed-decisions benchmark the base
 checkpoints score near chance zero-shot (0.36 and 0.35 against a 0.318 random baseline),
