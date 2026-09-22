@@ -1,8 +1,8 @@
-"""Backbone abstraction tests (laya/backbones.py): offline, tiny random-weight models.
+"""Backbone abstraction tests (laya_flash/backbones.py): offline, tiny random-weight models.
 
 Run: python tests/test_backbones.py
 
-The LFM2 cases need transformers >= 4.55 (the `laya[lfm2]` extra); on older installs
+The LFM2 cases need transformers >= 4.55 (the `laya-flash[lfm2]` extra); on older installs
 they are skipped so the file stays green at the package's base 4.48 floor.
 """
 
@@ -18,8 +18,8 @@ from tokenizers import Tokenizer
 from tokenizers.models import WordLevel
 from transformers import AutoModel, BertConfig, BertModel, PreTrainedTokenizerFast
 
-from laya.backbones import LayaBackbone, as_backbone, backbone_hidden_size, hidden_states_of, lfm2_backbone
-from laya.common import DecisionModel, build_model, build_sequence
+from laya_flash.backbones import LayaFlashBackbone, as_backbone, backbone_hidden_size, hidden_states_of, lfm2_backbone
+from laya_flash.common import DecisionModel, build_model, build_sequence
 
 
 def _lfm2_available() -> bool:
@@ -83,7 +83,7 @@ def test_as_backbone_preserves_state_dict_keys():
     enc = _tiny_bert().eval()
     keys_before = set(enc.state_dict())
     bb = as_backbone(enc)
-    assert isinstance(bb, LayaBackbone)
+    assert isinstance(bb, LayaFlashBackbone)
     assert set(bb.state_dict()) == keys_before  # no wrapper level, no projection
     ids = torch.randint(0, 50, (2, 6))
     am = torch.ones(2, 6, dtype=torch.long)
@@ -119,16 +119,16 @@ def test_lfm2_backbone_from_pretrained_path():
         return
     with tempfile.TemporaryDirectory() as tmp:
         # save_pretrained comes from the PretrainedModel base the dynamic class mixes in,
-        # which the LayaBackbone return type cannot express (nn.Module __getattr__).
+        # which the LayaFlashBackbone return type cannot express (nn.Module __getattr__).
         lfm2_backbone(_tiny_lfm2_config()).save_pretrained(tmp)  # pyright: ignore[reportCallIssue]
         bb = lfm2_backbone(tmp, head_dim=16)
-        assert isinstance(bb, LayaBackbone) and bb.hidden_size == 16
+        assert isinstance(bb, LayaFlashBackbone) and bb.hidden_size == 16
 
 
 def test_lfm2_backbone_forward_shapes():
     torch.manual_seed(2)
     bb = lfm2_backbone(_tiny_lfm2_config())
-    assert isinstance(bb, LayaBackbone)
+    assert isinstance(bb, LayaFlashBackbone)
     ids = torch.randint(0, 64, (2, 7))
     am = torch.ones(2, 7, dtype=torch.long)
     with torch.no_grad():
@@ -213,7 +213,7 @@ def test_build_model_dispatches_on_model_type():
             "head_max_len": 32,
         }
         model = build_model(cfg, encoder_dir=str(enc_dir))
-        assert isinstance(model.encoder, LayaBackbone)
+        assert isinstance(model.encoder, LayaFlashBackbone)
         assert model.encoder.config.model_type == "lfm2"  # routed to the LFM2 class, not AutoModel
         assert model.encoder.hidden_size == 16
 
@@ -228,7 +228,7 @@ def test_build_model_dispatches_on_model_type():
         _tiny_bert_config().save_pretrained(bert_dir)
         cfg_bert = {"encoder": str(bert_dir), "head_layers": 1, "act_costs": {"act": 0}}
         model_bert = build_model(cfg_bert, encoder_dir=str(bert_dir))
-        assert isinstance(model_bert.encoder, LayaBackbone)
+        assert isinstance(model_bert.encoder, LayaFlashBackbone)
         assert model_bert.encoder.hidden_size == 16
 
 
@@ -256,6 +256,6 @@ if __name__ == "__main__":
         test_decision_model_with_backbone()
         test_build_model_dispatches_on_model_type()
     else:
-        print("skipped LFM2 backbone tests: transformers >= 4.55 not installed (pip install 'laya[lfm2]')")
+        print("skipped LFM2 backbone tests: transformers >= 4.55 not installed (pip install 'laya-flash[lfm2]')")
     test_helpers()
     print("all backbone tests passed")

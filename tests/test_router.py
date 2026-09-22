@@ -7,9 +7,9 @@ import time as _time
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from laya.common import QTYPES, TEMP_MAX, TEMP_MIN, clamp_temperature, temp_bucket  # noqa: E402
-from laya.lang import analyse, detect_script, guess_latin_language, is_english, state_text  # noqa: E402
-from laya.router import (  # noqa: E402
+from laya_flash.common import QTYPES, TEMP_MAX, TEMP_MIN, clamp_temperature, temp_bucket  # noqa: E402
+from laya_flash.lang import analyse, detect_script, guess_latin_language, is_english, state_text  # noqa: E402
+from laya_flash.router import (  # noqa: E402
     BUNDLE_REPO,
     DEFAULT_MODELS,
     STANDALONE_MODELS,
@@ -188,13 +188,13 @@ check("workflow/empty", match_typed_decisions_workflow({}), None)
 # --------------------------------------------------------------------- name normalisation
 for alias, want in [
     ("en", "english"),
-    ("laya", "english"),
+    ("laya-flash", "english"),
     ("multi", "multilingual"),
     ("ML", "multilingual"),
     ("typed", "typed-decisions"),
     ("typed_decisions", "typed-decisions"),
     ("English", "english"),
-    ("convaiinnovations/laya".split("/")[-1], "english"),
+    ("nampham1106/laya-flash".split("/")[-1], "english"),
 ]:
     check("alias/" + alias, normalise_name(alias), want)
 try:
@@ -250,7 +250,7 @@ check("route/explicit beats workflow", r_auto.route({"body": "x"}, Q_TD, model="
 
 # decision payload shape
 d = r.route({"body": "मुझसे दो बार शुल्क लिया गया"}, Q_GENERIC)
-check("decision/has repo", d["repo"], "convaiinnovations/laya/multilingual")
+check("decision/has repo", d["repo"], "nampham1106/laya-flash/multilingual")
 check("decision/has reason", isinstance(d["reason"], str) and len(d["reason"]) > 0, True)
 check("decision/detection script", d["detection"]["script"], "devanagari")
 check("decision/.model property", d.model, "multilingual")
@@ -358,8 +358,8 @@ check("lru/unload all", rr.loaded, [])
 check("bundle/english is repo root", DEFAULT_MODELS["english"], (BUNDLE_REPO, None))
 check("bundle/multilingual subfolder", DEFAULT_MODELS["multilingual"], (BUNDLE_REPO, "multilingual"))
 check("bundle/typed subfolder", DEFAULT_MODELS["typed-decisions"], (BUNDLE_REPO, "typed-decisions"))
-check("repo_str/root", _repo_str((BUNDLE_REPO, None)), "convaiinnovations/laya")
-check("repo_str/sub", _repo_str((BUNDLE_REPO, "multilingual")), "convaiinnovations/laya/multilingual")
+check("repo_str/root", _repo_str((BUNDLE_REPO, None)), "nampham1106/laya-flash")
+check("repo_str/sub", _repo_str((BUNDLE_REPO, "multilingual")), "nampham1106/laya-flash/multilingual")
 check("repo_str/plain string", _repo_str("some/repo"), "some/repo")
 
 r_bundle = Router()
@@ -367,17 +367,17 @@ r_alone = Router(standalone_repos=True)
 check(
     "bundle/default router uses bundle",
     r_bundle.route({"m": "मुझसे दो बार"}, Q_GENERIC)["repo"],
-    "convaiinnovations/laya/multilingual",
+    "nampham1106/laya-flash/multilingual",
 )
 check(
     "standalone/opt-in uses own repo",
     r_alone.route({"m": "मुझसे दो बार"}, Q_GENERIC)["repo"],
-    "convaiinnovations/laya-multilingual",
+    "nampham1106/laya-flash-multilingual",
 )
 check(
     "standalone/english unchanged",
     r_alone.route({"m": "I was charged twice"}, Q_GENERIC)["repo"],
-    "convaiinnovations/laya",
+    "nampham1106/laya-flash",
 )
 check("standalone map complete", sorted(STANDALONE_MODELS), sorted(DEFAULT_MODELS))
 # a local-path override must still work (the Space and tests rely on it)
@@ -426,7 +426,7 @@ check("attach/accepts aliases", stubbed_router(1).attach("en", _Stub("x")) is no
 
 def _concurrent_load_dedup():
     """Concurrent load() of the same checkpoint must build one Agent, shared by all callers."""
-    import laya.agent as _agent_mod
+    import laya_flash.agent as _agent_mod
 
     constructions = []
     cl = threading.Lock()
@@ -467,7 +467,7 @@ check("threads/LRU views stay consistent", (order_len == 1 and agents == ["engli
 
 def _concurrent_hotpath():
     """Concurrent hot-path loads of an already-cached model must keep _order/_agents consistent."""
-    import laya.agent as _agent_mod
+    import laya_flash.agent as _agent_mod
 
     class _Agent:
         def __init__(self, *args, **kwargs):

@@ -1,6 +1,6 @@
 """Backbone abstraction: swap the encoder under the decision head without touching it.
 
-`LayaBackbone` is the contract an encoder must satisfy to sit inside a DecisionModel:
+`LayaFlashBackbone` is the contract an encoder must satisfy to sit inside a DecisionModel:
 
     forward(input_ids, attention_mask) -> hidden_states            # [batch, seq, hidden_size]
     hidden_size                         -> int                     # width of those states
@@ -36,7 +36,7 @@ import torch
 import torch.nn as nn
 
 __all__ = [
-    "LayaBackbone",
+    "LayaFlashBackbone",
     "as_backbone",
     "backbone_hidden_size",
     "hidden_states_of",
@@ -44,7 +44,7 @@ __all__ = [
 ]
 
 
-class LayaBackbone(nn.Module, ABC):
+class LayaFlashBackbone(nn.Module, ABC):
     """Contract for encoders usable as the DecisionModel backbone.
 
     Subclasses hold the encoder's own parameters directly (no wrapper level), so a
@@ -77,7 +77,7 @@ class LayaBackbone(nn.Module, ABC):
 def backbone_hidden_size(encoder) -> int:
     """Output width of a backbone, tolerating raw HF encoders (tests, notebooks).
 
-    Prefers a LayaBackbone's `hidden_size` because with a head projection the output
+    Prefers a LayaFlashBackbone's `hidden_size` because with a head projection the output
     width deliberately differs from encoder.config.hidden_size.
     """
     size = getattr(encoder, "hidden_size", None)
@@ -89,11 +89,11 @@ def backbone_hidden_size(encoder) -> int:
 
 
 def hidden_states_of(output) -> torch.Tensor:
-    """Hidden states from a backbone call: Tensor for LayaBackbone, ModelOutput for raw HF."""
+    """Hidden states from a backbone call: Tensor for LayaFlashBackbone, ModelOutput for raw HF."""
     return output if torch.is_tensor(output) else output.last_hidden_state
 
 
-def _attach_projection(encoder: LayaBackbone, head_dim: Optional[int]) -> None:
+def _attach_projection(encoder: LayaFlashBackbone, head_dim: Optional[int]) -> None:
     """Attach head_proj when head_dim asks for a width the encoder does not natively produce."""
     if head_dim is not None and head_dim != encoder.config.hidden_size:
         encoder.head_proj = nn.Linear(encoder.config.hidden_size, head_dim)
@@ -111,9 +111,9 @@ def _hf_backbone_class(base: type) -> type:
     cls = _BACKBONE_CLASSES.get(base)
     if cls is None:
 
-        class _HFBackbone(base, LayaBackbone):
+        class _HFBackbone(base, LayaFlashBackbone):
             # The concrete base comes first in the MRO so its __init__/forward win;
-            # LayaBackbone only contributes the contract and prepare_tokenizer.
+            # LayaFlashBackbone only contributes the contract and prepare_tokenizer.
             def forward(self, input_ids=None, attention_mask=None, **kwargs):
                 out = base.forward(self, input_ids=input_ids, attention_mask=attention_mask, **kwargs)
                 return self._apply_head_proj(hidden_states_of(out))
@@ -127,13 +127,13 @@ def _hf_backbone_class(base: type) -> type:
     return cls
 
 
-def as_backbone(encoder: nn.Module, head_dim: Optional[int] = None) -> LayaBackbone:
-    """Rebind a HF encoder instance onto the LayaBackbone contract, in place.
+def as_backbone(encoder: nn.Module, head_dim: Optional[int] = None) -> LayaFlashBackbone:
+    """Rebind a HF encoder instance onto the LayaFlashBackbone contract, in place.
 
     Wrapping by composition (self.inner = encoder) would rename every checkpoint key
     from `encoder.X` to `encoder.inner.X` and orphan all published weights, so instead
     the instance's class is swapped for a subclass of its own type mixed with
-    LayaBackbone. Parameters, buffers and state_dict keys are untouched; only the
+    LayaFlashBackbone. Parameters, buffers and state_dict keys are untouched; only the
     forward return type (hidden-state tensor instead of ModelOutput) and the
     `hidden_size`/`prepare_tokenizer` surface change.
 
@@ -141,7 +141,7 @@ def as_backbone(encoder: nn.Module, head_dim: Optional[int] = None) -> LayaBackb
     Linear that projects hidden states for a fixed-width decision head.
     """
     encoder.__class__ = _hf_backbone_class(type(encoder))
-    backbone = cast(LayaBackbone, encoder)  # the class swap above is what makes this true
+    backbone = cast(LayaFlashBackbone, encoder)  # the class swap above is what makes this true
     _attach_projection(backbone, head_dim)
     return backbone
 
@@ -164,7 +164,7 @@ def _import_lfm2():
     except (ImportError, AttributeError) as e:
         raise ImportError(
             "The LFM2 backbone needs transformers >= %s (native lfm2 support), found an older "
-            "install. Upgrade with: pip install 'laya[lfm2]'" % _LFM2_MIN_TRANSFORMERS
+            "install. Upgrade with: pip install 'laya-flash[lfm2]'" % _LFM2_MIN_TRANSFORMERS
         ) from e
 
 
@@ -175,12 +175,12 @@ def _install_lfm2_patches(module) -> None:
     Patches the module globals rather than subclass overrides because Lfm2Model.forward
     resolves `create_causal_mask` and the short-conv forward at call time from the
     module/class namespaces. Side effect (the same one upstream's remote-code file
-    has): every Lfm2Model in this process becomes bidirectional once patched. Laya
+    has): every Lfm2Model in this process becomes bidirectional once patched. Laya-Flash
     never loads a causal LFM2 alongside, and ModernBERT/mmBERT are unaffected.
     """
     import torch.nn.functional as F
 
-    if getattr(module, "_laya_bidirectional", False):
+    if getattr(module, "_laya_flash_bidirectional", False):
         return
 
     def _bidirectional_mask(
@@ -248,7 +248,7 @@ def _install_lfm2_patches(module) -> None:
     module.create_causal_mask = _bidirectional_mask
     module.Lfm2ShortConv.slow_forward = _noncausal_shortconv_forward
     module.Lfm2ShortConv.forward = lambda self, *args, **kwargs: self.slow_forward(*args, **kwargs)
-    module._laya_bidirectional = True
+    module._laya_flash_bidirectional = True
 
 
 _LFM2_BACKBONE_CLASS = None
@@ -259,7 +259,7 @@ def _lfm2_backbone_class() -> type:
     if _LFM2_BACKBONE_CLASS is None:
         module = _import_lfm2()
 
-        class _LayaLfm2Backbone(module.Lfm2Model, LayaBackbone):
+        class _LayaFlashLfm2Backbone(module.Lfm2Model, LayaFlashBackbone):
             """LFM2 patched for encoder-style use: bidirectional attention + non-causal conv."""
 
             # Published LFM2-encoder checkpoints (e.g. LFM2.5-Encoder-230M) nest the base
@@ -291,10 +291,10 @@ def _lfm2_backbone_class() -> type:
                 if getattr(tok, "sep_token", None) is None:
                     tok.sep_token = "<|endoftext|>"
 
-        _LFM2_BACKBONE_CLASS = _LayaLfm2Backbone
+        _LFM2_BACKBONE_CLASS = _LayaFlashLfm2Backbone
         # Module-level name so whole-model pickle/torch.save can resolve the class.
-        _LayaLfm2Backbone.__qualname__ = "LayaLfm2Backbone"
-        globals()["LayaLfm2Backbone"] = _LayaLfm2Backbone
+        _LayaFlashLfm2Backbone.__qualname__ = "LayaFlashLfm2Backbone"
+        globals()["LayaFlashLfm2Backbone"] = _LayaFlashLfm2Backbone
     return _LFM2_BACKBONE_CLASS
 
 
@@ -302,7 +302,7 @@ def lfm2_backbone(
     model_id_or_config: Union[str, object],
     head_dim: Optional[int] = None,
     **from_pretrained_kwargs,
-) -> LayaBackbone:
+) -> LayaFlashBackbone:
     """Build an LFM2 backbone from a hub id, local path, or Lfm2Config.
 
     Keyword arguments (attn_implementation, torch_dtype, token, ...) pass through to

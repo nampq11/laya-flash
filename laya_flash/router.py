@@ -1,11 +1,11 @@
-"""Route a request to the Laya checkpoint best suited to it.
+"""Route a request to the Laya-Flash checkpoint best suited to it.
 
 Three checkpoints, measured on a shared benchmark (17,416 questions, one T4, identical questions
 per model -- see the repository's benchmark notebook):
 
-  english          convaiinnovations/laya                421M  ModernBERT-large, 512 tokens
-  multilingual     convaiinnovations/laya-multilingual   322M  mmBERT-base, 1024 tokens, 100+ langs
-  typed-decisions  convaiinnovations/laya-typed-decisions 421M  ModernBERT-large, 1024 tokens,
+  english          nampham1106/laya-flash                421M  ModernBERT-large, 512 tokens
+  multilingual     nampham1106/laya-flash-multilingual   322M  mmBERT-base, 1024 tokens, 100+ langs
+  typed-decisions  nampham1106/laya-flash-typed-decisions 421M  ModernBERT-large, 1024 tokens,
                                                                 fine-tuned on the typed-decisions
                                                                 workflows
 
@@ -35,7 +35,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union, cast
 from .lang import analyse
 
 # The hub repo bundles all three checkpoints; only the requested subfolder is downloaded.
-BUNDLE_REPO = "convaiinnovations/laya"
+BUNDLE_REPO = "nampham1106/laya-flash"
 DEFAULT_MODELS = {
     "english": (BUNDLE_REPO, None),
     "multilingual": (BUNDLE_REPO, "multilingual"),
@@ -44,9 +44,9 @@ DEFAULT_MODELS = {
 
 # The same checkpoints also live in their own repos, for anyone who prefers them.
 STANDALONE_MODELS = {
-    "english": "convaiinnovations/laya",
-    "multilingual": "convaiinnovations/laya-multilingual",
-    "typed-decisions": "convaiinnovations/laya-typed-decisions",
+    "english": "nampham1106/laya-flash",
+    "multilingual": "nampham1106/laya-flash-multilingual",
+    "typed-decisions": "nampham1106/laya-flash-typed-decisions",
 }
 
 
@@ -68,14 +68,14 @@ def _split(spec: Union[str, Tuple[str, Optional[str]], List[Optional[str]]]) -> 
 # Aliases people are likely to type.
 _ALIASES = {
     "en": "english",
-    "laya": "english",
+    "laya-flash": "english",
     "default": "english",
     "multi": "multilingual",
     "ml": "multilingual",
-    "laya-multilingual": "multilingual",
+    "laya-flash-multilingual": "multilingual",
     "typed": "typed-decisions",
     "typed_decisions": "typed-decisions",
-    "laya-typed-decisions": "typed-decisions",
+    "laya-flash-typed-decisions": "typed-decisions",
     "decisions": "typed-decisions",
 }
 
@@ -131,9 +131,9 @@ def match_typed_decisions_workflow(questions: Dict[str, Any]) -> Optional[str]:
 
 
 class Router:
-    """Lazily loads Laya checkpoints and sends each request to the right one.
+    """Lazily loads Laya-Flash checkpoints and sends each request to the right one.
 
-        from laya import Router
+        from laya_flash import Router
 
         r = Router()
         r.predict({"message": "Mein Konto wurde zweimal belastet"}, questions)   # -> multilingual
@@ -221,7 +221,7 @@ class Router:
         """Register an already-built Agent under `name` instead of loading a second copy.
 
         Useful when the process has a checkpoint loaded for other reasons: a demo that already
-        built `convaiinnovations/laya` can hand it to the router rather than pay for -- and hold
+        built `nampham1106/laya-flash` can hand it to the router rather than pay for -- and hold
         in memory -- a duplicate 421M parameters.
         """
         key = normalise_name(name)

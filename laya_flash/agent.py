@@ -102,15 +102,15 @@ class Agent:
 
     def __init__(
         self,
-        model_id_or_path: str = "convaiinnovations/laya",
+        model_id_or_path: str = "nampham1106/laya-flash",
         device: Optional[str] = None,
         token: Optional[str] = None,
         subfolder: Optional[str] = None,
     ):
-        """Load a Laya checkpoint.
+        """Load a Laya-Flash checkpoint.
 
         `subfolder` selects one checkpoint from a repo that bundles several, e.g.
-        `Agent("convaiinnovations/laya", subfolder="multilingual")`. Only that subfolder is
+        `Agent("nampham1106/laya-flash", subfolder="multilingual")`. Only that subfolder is
         downloaded, so bundling does not cost every user the whole family.
         """
         from safetensors.torch import load_file
@@ -153,8 +153,8 @@ class Agent:
         if not os.path.exists(cfg_path):
             raise FileNotFoundError(
                 f"Incompatible model: {model_id_or_path!r} does not contain 'rl_agent_config.json'. "
-                f"That file ships with the weights of a Laya checkpoint, so load one of those "
-                f"(e.g. 'convaiinnovations/laya') or a directory your own training run wrote."
+                f"That file ships with the weights of a Laya-Flash checkpoint, so load one of those "
+                f"(e.g. 'nampham1106/laya-flash') or a directory your own training run wrote."
             )
 
         with open(cfg_path) as f:
@@ -204,7 +204,7 @@ class Agent:
         self.model.load_state_dict(weights, strict=True)
 
         # ModernBERT's reference_compile defaults to "auto" and will torch.compile the encoder.
-        # That is a loss for the batch sizes Laya runs (a handful of questions per call) and can
+        # That is a loss for the batch sizes Laya-Flash runs (a handful of questions per call) and can
         # hang on some platforms, so keep the eager path.
         try:
             self.model.encoder.config.reference_compile = False
@@ -229,7 +229,7 @@ class Agent:
         ]
         if rejected:
             warnings.warn(
-                "laya: this checkpoint ships temperatures outside [%g, %g] which would distort "
+                "laya-flash: this checkpoint ships temperatures outside [%g, %g] which would distort "
                 "confidence; clamping %s. Treat confidence from the affected buckets as uncalibrated."
                 % (TEMP_MIN, TEMP_MAX, ", ".join(rejected)),
                 RuntimeWarning,
@@ -259,7 +259,7 @@ class Agent:
 
         if fell_back_from is not None:
             print(
-                "\n[laya] Warning: could not place the model on %s, so it is running on CPU.\n"
+                "\n[laya-flash] Warning: could not place the model on %s, so it is running on CPU.\n"
                 "  Reason: %s\n"
                 "  Inference will be roughly 10-15x slower (~200-500 ms rather than ~35 ms).\n"
                 "  If this is a newer NVIDIA GPU (Blackwell / RTX 50-series), your PyTorch build\n"
@@ -384,7 +384,7 @@ class Agent:
                 }
 
         return {
-            "model": "laya-rl-agent",
+            "model": "laya-flash-rl-agent",
             "answers": answers,
             "usage": {"input_tokens": n_tokens, "output_tokens": 0},
         }
@@ -396,16 +396,16 @@ RLAgent = Agent
 
 
 def load(
-    model_id_or_path: str = "convaiinnovations/laya",
+    model_id_or_path: str = "nampham1106/laya-flash",
     device: Optional[str] = None,
     token: Optional[str] = None,
     subfolder: Optional[str] = None,
 ) -> Agent:
-    """Load a Laya agent.
+    """Load a Laya-Flash agent.
 
     `subfolder` picks one checkpoint out of a repo that bundles several:
 
-        laya.load("convaiinnovations/laya")                           # English (repo root)
-        laya.load("convaiinnovations/laya", subfolder="multilingual")
+        laya_flash.load("nampham1106/laya-flash")                           # English (repo root)
+        laya_flash.load("nampham1106/laya-flash", subfolder="multilingual")
     """
     return Agent(model_id_or_path, device=device, token=token, subfolder=subfolder)

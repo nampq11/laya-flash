@@ -1,4 +1,4 @@
-"""Email utilities for cleaning and structuring email inputs in laya."""
+"""Email utilities for cleaning and structuring email inputs in laya-flash."""
 
 import re
 from typing import Dict, Optional

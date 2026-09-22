@@ -1,4 +1,4 @@
-"""End-to-end test: LiquidAI/LFM2.5-Encoder-230M as the Laya backbone, real weights.
+"""End-to-end test: LiquidAI/LFM2.5-Encoder-230M as the Laya-Flash backbone, real weights.
 
 Not run by CI (network + ~1 GB download). Opt in with:
 
@@ -6,7 +6,7 @@ Not run by CI (network + ~1 GB download). Opt in with:
 
 Verifies the things the LFM2 integration can get silently wrong:
   1. the pretrained weights actually load (base_model_prefix strip, no random init);
-  2. the encoder is bidirectional through laya's own backbone class, and bit-identical
+  2. the encoder is bidirectional through laya_flash's own backbone class, and bit-identical
      to the official trust_remote_code reference;
   3. the [MASK]-marker flow works with LFM2's tokenizer via prepare_tokenizer.
 """
@@ -19,8 +19,8 @@ import torch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from laya.backbones import lfm2_backbone
-from laya.common import DecisionModel, build_sequence, collate_items
+from laya_flash.backbones import lfm2_backbone
+from laya_flash.common import DecisionModel, build_sequence, collate_items
 
 MODEL_ID = "LiquidAI/LFM2.5-Encoder-230M"
 

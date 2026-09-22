@@ -10,7 +10,7 @@ they are given. This module does not change ``DecisionModel.forward`` and does n
 second decision-model pass.
 
 The coarse-to-fine pattern is the one the README recommends and the one reported in
-https://github.com/NandhaKishorM/laya/issues/102. Ranking here is cosine similarity on
+https://github.com/NandhaKishorM/laya_flash/issues/102. Ranking here is cosine similarity on
 whatever vectors ``embed_fn`` returns. Issue #102's BANKING77 figures belong to that
 report; this module does not measure them.
 """
@@ -116,7 +116,7 @@ def embed_fn_from_agent(
     The callable embeds a list of strings with ``agent.tok`` and ``agent.model.encoder``.
     It does not run the decision head and does not download weights. A dedicated
     bi-encoder passed as ``embed_fn`` will usually shortlist better; this helper is
-    for callers who only have the Laya checkpoint in memory.
+    for callers who only have the Laya-Flash checkpoint in memory.
 
     Padding positions are excluded from the mean. The encoder's train/eval flag is
     left as the caller set it (a loaded ``Agent`` is already in eval).

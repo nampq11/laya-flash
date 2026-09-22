@@ -59,10 +59,10 @@ check_true(
 )
 
 # The optional lfm2 extra carries its own, higher floor: native lfm2 support arrives
-# in 4.55. laya/backbones.py states the same floor in its upgrade hint, so read it from
+# in 4.55. laya_flash/backbones.py states the same floor in its upgrade hint, so read it from
 # there (same zero-import text parsing as above) and make the two agree - otherwise the
-# ImportError's "pip install 'laya[lfm2]'" advice can promise less than it delivers.
-backbones_src = read(os.path.join("laya", "backbones.py"))
+# ImportError's "pip install 'laya-flash[lfm2]'" advice can promise less than it delivers.
+backbones_src = read(os.path.join("laya_flash", "backbones.py"))
 lfm2_min = re.search(r'_LFM2_MIN_TRANSFORMERS\s*=\s*"([\d.]+)"', backbones_src)
 check_true("backbones/declares the lfm2 transformers floor", lfm2_min is not None)
 lfm2_floor = version_tuple(lfm2_min.group(1) if lfm2_min else "0")

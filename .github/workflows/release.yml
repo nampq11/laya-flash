@@ -4,7 +4,7 @@ name: Release
 # publishes to PyPI and opens a GitHub Release.
 #
 # Set up once: PyPI -> Publishing -> add a Trusted Publisher for
-#   owner NandhaKishorM, repo laya, workflow release.yml, environment pypi
+#   owner nampq11, repo laya-flash, workflow release.yml, environment pypi
 # Then no API token ever lives in GitHub secrets.
 
 on:
@@ -76,7 +76,7 @@ jobs:
           name: dist
           path: dist/
       # Needs a Trusted Publisher on PyPI (Publishing -> add: owner NandhaKishorM,
-      # repo laya, workflow release.yml, environment pypi). Until that exists the
+      # repo laya-flash, workflow release.yml, environment pypi). Until that exists the
       # exchange fails; skip-existing also makes a re-run safe after a manual upload.
       - uses: pypa/gh-action-pypi-publish@release/v1
         with:

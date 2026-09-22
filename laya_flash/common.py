@@ -1,4 +1,4 @@
-"""Core model architecture, token sequence construction, and confidence estimation for laya."""
+"""Core model architecture, token sequence construction, and confidence estimation for laya-flash."""
 
 import json
 import math
@@ -9,7 +9,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from .backbones import LayaBackbone, as_backbone, lfm2_backbone
+from .backbones import LayaFlashBackbone, as_backbone, lfm2_backbone
 
 QTYPES = {"choice": 0, "score": 1, "noul": 2}
 QTYPE_NAMES = {v: k for k, v in QTYPES.items()}
@@ -95,16 +95,16 @@ class DecisionModel(nn.Module):
     """Bidirectional transformer encoder backbone + typed decision head."""
 
     def __init__(
-        self, encoder: Union[nn.Module, LayaBackbone], head_layers: int = 2, n_act: int = 2, dropout: float = 0.1
+        self, encoder: Union[nn.Module, LayaFlashBackbone], head_layers: int = 2, n_act: int = 2, dropout: float = 0.1
     ):
         super().__init__()
         # One normalization point: every encoder a DecisionModel hosts is rebound onto
-        # the LayaBackbone contract (in place, state_dict keys untouched), so the head
+        # the LayaFlashBackbone contract (in place, state_dict keys untouched), so the head
         # below and forward() can rely on hidden_size and a hidden-state tensor. The
         # isinstance guard matters: re-applying as_backbone would double-attach head_proj.
-        if not isinstance(encoder, LayaBackbone):
+        if not isinstance(encoder, LayaFlashBackbone):
             encoder = as_backbone(encoder)
-        self.encoder: LayaBackbone = encoder
+        self.encoder: LayaFlashBackbone = encoder
         d = encoder.hidden_size  # post-projection width when a head_proj was attached
         nhead = max(1, d // 64)
         layer = nn.TransformerEncoderLayer(d, nhead, 4 * d, dropout, batch_first=True, norm_first=True)
@@ -155,7 +155,7 @@ def build_model(cfg: Dict, encoder_dir: Optional[str] = None) -> DecisionModel:
     LFM2 is detected from the encoder config's model_type - never from the repo name -
     because AutoModel would return the *causal* native Lfm2Model and silently drop the
     pretrained weights; everything else goes through AutoModel as before and lands on
-    the LayaBackbone contract without touching its keys.
+    the LayaFlashBackbone contract without touching its keys.
 
     cfg["head_dim"] optionally fixes the head input width: the backbone then projects
     its hidden states (e.g. LFM2's 1024 -> 768 to match an mmBERT-sized head). Without

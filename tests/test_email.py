@@ -1,6 +1,6 @@
 """Email cleaning: a disclaimer footer must not delete the sender's actual request.
 
-Regression tests for `laya.email.clean_email_body`. `_DISCLAIMER` used to be applied to whole
+Regression tests for `laya_flash.email.clean_email_body`. `_DISCLAIMER` used to be applied to whole
 paragraphs, so any paragraph that merely *mentioned* boilerplate was deleted outright. When the
 footer ran on without a blank line, the request went with it:
 
@@ -17,7 +17,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from laya.email import clean_email_body, email_state  # noqa: E402
+from laya_flash.email import clean_email_body, email_state  # noqa: E402
 
 PASS, FAIL = [], []
 

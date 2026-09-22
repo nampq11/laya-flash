@@ -1,7 +1,7 @@
-"""Laya: Fast, non-autoregressive System 1 decision engine with calibrated probabilities."""
+"""Laya-Flash: Fast, non-autoregressive System 1 decision engine with calibrated probabilities."""
 
 from .agent import Agent, RLAgent, load
-from .backbones import LayaBackbone, as_backbone, lfm2_backbone
+from .backbones import LayaFlashBackbone, as_backbone, lfm2_backbone
 from .common import (
     QTYPE_NAMES,
     QTYPES,
@@ -24,12 +24,12 @@ from .presets import (
 from .router import DEFAULT_MODELS, RouteDecision, Router
 from .shortlist import embed_fn_from_agent, predict_shortlist, shortlist_choice
 
-__version__ = "0.3.5"
+__version__ = "0.4.0"
 __all__ = [
     "Agent",
     "RLAgent",
     "load",
-    "LayaBackbone",
+    "LayaFlashBackbone",
     "as_backbone",
     "lfm2_backbone",
     "Router",

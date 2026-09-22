@@ -1,4 +1,4 @@
-"""Regression tests for DecisionModel.forward (laya/common.py).
+"""Regression tests for DecisionModel.forward (laya_flash/common.py).
 
 Uses a tiny from-config BERT encoder (no pretrained weights downloaded) so
 these run fast and offline, unlike tests/test_local_e2e.py which needs a
@@ -13,7 +13,7 @@ from transformers import AutoConfig, AutoModel
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from laya.common import DecisionModel
+from laya_flash.common import DecisionModel
 
 
 def _tiny_model(head_layers: int = 1, n_act: int = 2) -> DecisionModel:
@@ -64,7 +64,7 @@ def test_single_option_top1_minus_top2_is_exactly_one():
     model = _tiny_model()
     input_ids, attention_mask, marker_pos, marker_mask, qtype = _inputs(batch=1, seq=6, n_markers=1)
     with torch.no_grad():
-        # DecisionModel rebinds its encoder onto the LayaBackbone contract, so a raw
+        # DecisionModel rebinds its encoder onto the LayaFlashBackbone contract, so a raw
         # call returns the hidden-state tensor itself.
         h = model.encoder(input_ids=input_ids, attention_mask=attention_mask)
         h = h + model.type_emb(qtype)[:, None, :]

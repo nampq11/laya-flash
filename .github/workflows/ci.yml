@@ -11,7 +11,7 @@ concurrency:
 
 env:
   # transformers probes for TensorFlow at import; when TF is present its abseil runtime can
-  # deadlock model construction. Laya is torch-only.
+  # deadlock model construction. Laya-Flash is torch-only.
   USE_TF: "0"
   USE_TORCH: "1"
   TOKENIZERS_PARALLELISM: "false"
@@ -39,7 +39,7 @@ jobs:
           pip install -e .
 
       - name: Import check
-        run: python -c "import laya; print(laya.__version__); print(sorted(laya.__all__))"
+        run: python -c "import laya_flash; print(laya_flash.__version__); print(sorted(laya_flash.__all__))"
 
       - name: Routing and language-detection tests
         run: |
@@ -70,7 +70,7 @@ jobs:
       - name: Format
         run: ruff format --check
       - name: Byte-compile every module
-        run: python -m compileall -q laya/ tests/
+        run: python -m compileall -q laya_flash/ tests/
 
   build:
     name: package

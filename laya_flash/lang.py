@@ -1,4 +1,4 @@
-"""Dependency-free language/script detection used to route between Laya checkpoints.
+"""Dependency-free language/script detection used to route between Laya-Flash checkpoints.
 
 Routing only needs one decision: *is this English Latin text, or is it something the English
 checkpoint cannot read?* Benchmarks on MASSIVE (14 languages) showed the English checkpoint
