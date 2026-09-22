@@ -29,9 +29,16 @@ Three checkpoints, and a `Router` that picks between them per request:
 
 | | encoder | params | context | use it for |
 |---|---|---|---|---|
-| [`laya-flash`](https://huggingface.co/nampham1106/laya-flash) | ModernBERT-large | 421M | 512 | English |
+| [`laya-flash`](https://huggingface.co/nampham1106/laya-flash) | LFM2.5-Encoder-230M | 256M | 512 | **baseline** — pretrained encoder, untrained head |
 | [`laya-flash-multilingual`](https://huggingface.co/nampham1106/laya-flash-multilingual) | mmBERT-base | 322M | 1024 | 100+ languages, 2x faster |
 | [`laya-flash-typed-decisions`](https://huggingface.co/nampham1106/laya-flash-typed-decisions) | ModernBERT-large | 421M | 1024 | the typed-decisions workflows |
+
+> **What's on the Hub today:** `nampham1106/laya-flash` hosts the **LFM2.5 baseline** — the
+> pretrained LiquidAI encoder with a freshly initialized decision head, so its outputs are
+> near-uniform until the first LFM2 fine-tune replaces it. The benchmark numbers below come
+> from the trained ModernBERT/mmBERT checkpoints of upstream
+> [laya](https://github.com/NandhaKishorM/laya); the `multilingual` and `typed-decisions`
+> repos are not published yet.
 
 ---
 
@@ -43,7 +50,7 @@ laya-flash forks [laya](https://github.com/NandhaKishorM/laya) around one change
 * LFM2.5 runs through transformers' native support with bidirectional-attention patches, **no `trust_remote_code`**, and reproduces the official remote-code path bit-exactly (`LAYA_LFM2_E2E=1 python tests/test_lfm2_e2e.py`).
 * `DecisionModel` sizes its head from the backbone's `hidden_size` (LFM2.5: 1024), or a `head_dim` projection reuses an existing head unchanged.
 
-The benchmark numbers below are still the shipped ModernBERT/mmBERT checkpoints — **the LFM2.5-backed model has not been benchmarked yet**, and no fine-tuned LFM2 checkpoint is published. Details in [Backbones](#backbones).
+The benchmark numbers below are still the shipped ModernBERT/mmBERT checkpoints — **the LFM2.5-backed model has not been benchmarked yet**, and the published LFM2 checkpoint (`nampham1106/laya-flash`) is an untrained-head baseline. Details in [Backbones](#backbones).
 
 ---
 
@@ -60,6 +67,10 @@ Python 3.10 or newer. The dependencies set that floor: `huggingface_hub` 1.x, `t
 ## Quickstart: Route Mode (Recommended)
 
 Laya-Flash ships three checkpoints. The built-in **`Router`** is the recommended entry point: it evaluates any state in any language, automatically detects scripts and languages in sub-milliseconds, and dispatches to the optimal checkpoint in a single forward pass.
+
+> The commented outputs in the examples below were measured on the trained ModernBERT/mmBERT
+> checkpoints. The Hub currently hosts the LFM2.5 **baseline** (near-uniform outputs), and
+> loading it needs the LFM2 extra: `pip install 'laya-flash[lfm2]'`.
 
 ```python
 import laya_flash
@@ -187,7 +198,7 @@ If you only need a single checkpoint for a dedicated pipeline, you can load mode
 import laya_flash
 
 # 1. Load a specific checkpoint directly from the hub
-agent = laya_flash.load("nampham1106/laya-flash")                           # English root
+agent = laya_flash.load("nampham1106/laya-flash")                           # LFM2.5 baseline (root)
 agent_ml = laya_flash.load("nampham1106/laya-flash", subfolder="multilingual") # 100+ languages
 agent_td = laya_flash.load("nampham1106/laya-flash", subfolder="typed-decisions")
 

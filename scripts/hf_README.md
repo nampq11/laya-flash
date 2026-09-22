@@ -1,6 +1,7 @@
 ---
 license: other
-license_name: LFM Open License v1.0
+license_name: lfm1.0
+license_link: LICENSE
 base_model: LiquidAI/LFM2.5-Encoder-230M
 tags:
 - laya-flash
