@@ -7,6 +7,8 @@ env/
 venv/
 .venv/
 build/
+# checkpoint artifacts written by scripts/build_lfm2_baseline.py
+out/
 develop-eggs/
 dist/
 downloads/
