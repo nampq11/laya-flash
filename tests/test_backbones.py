@@ -88,7 +88,7 @@ def test_as_backbone_preserves_state_dict_keys():
     ids = torch.randint(0, 50, (2, 6))
     am = torch.ones(2, 6, dtype=torch.long)
     with torch.no_grad():
-        want = BertModel.forward(enc, input_ids=ids, attention_mask=am).last_hidden_state
+        want = hidden_states_of(BertModel.forward(enc, input_ids=ids, attention_mask=am))
         got = bb(input_ids=ids, attention_mask=am)
     assert torch.is_tensor(got)
     assert torch.allclose(got, want)
@@ -118,7 +118,9 @@ def test_lfm2_backbone_from_pretrained_path():
     if not _lfm2_available():
         return
     with tempfile.TemporaryDirectory() as tmp:
-        lfm2_backbone(_tiny_lfm2_config()).save_pretrained(tmp)
+        # save_pretrained comes from the PretrainedModel base the dynamic class mixes in,
+        # which the LayaBackbone return type cannot express (nn.Module __getattr__).
+        lfm2_backbone(_tiny_lfm2_config()).save_pretrained(tmp)  # pyright: ignore[reportCallIssue]
         bb = lfm2_backbone(tmp, head_dim=16)
         assert isinstance(bb, LayaBackbone) and bb.hidden_size == 16
 
@@ -201,7 +203,7 @@ def test_build_model_dispatches_on_model_type():
         enc_dir.mkdir()
         # Save the model (not just its config): the no-encoder_dir case below loads it
         # back through from_pretrained on the path.
-        lfm2_backbone(_tiny_lfm2_config()).save_pretrained(enc_dir)
+        lfm2_backbone(_tiny_lfm2_config()).save_pretrained(enc_dir)  # pyright: ignore[reportCallIssue]
         cfg = {
             "encoder": str(enc_dir),
             "head_layers": 1,
@@ -236,7 +238,7 @@ def test_helpers():
     enc = _tiny_bert()
     assert backbone_hidden_size(enc) == 16
     assert backbone_hidden_size(as_backbone(enc, head_dim=8)) == 8
-    out = BaseModelOutput(last_hidden_state=torch.zeros(1, 2, 3))
+    out = BaseModelOutput(last_hidden_state=torch.zeros(1, 2, 3))  # pyright: ignore[reportArgumentType]
     assert hidden_states_of(out) is out.last_hidden_state
     t = torch.zeros(1)
     assert hidden_states_of(t) is t

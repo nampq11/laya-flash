@@ -12,7 +12,7 @@ is explicitly best-effort: pass an explicit model or `lang=` when you already kn
 """
 
 import re
-from typing import Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 # Unicode blocks that the English (ModernBERT-large, 50k English BPE) checkpoint cannot read.
 _SCRIPT_RANGES = [
@@ -346,7 +346,7 @@ def script_profile(text: str) -> Dict[str, float]:
 NON_EN_DIACRITIC_RATE = 0.02
 
 
-def latin_profile(text: str) -> Dict[str, object]:
+def latin_profile(text: str) -> Dict[str, Any]:
     """Evidence behind the Latin-script language guess.
 
     Returns `language` (may be None when undecided), `english_hits`, `diacritic_rate` and
@@ -393,7 +393,7 @@ def guess_latin_language(text: str) -> Optional[str]:
     return latin_profile(text)["language"]
 
 
-def analyse(state: Union[str, dict, list, None]) -> Dict[str, object]:
+def analyse(state: Union[str, dict, list, None]) -> Dict[str, Any]:
     """Full detection result for a state.
 
     Returns `script`, `script_profile`, `language` (best effort, may be None),

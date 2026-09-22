@@ -313,7 +313,8 @@ class _Stub:
 
 def stubbed_router(max_loaded):
     rr = Router(max_loaded=max_loaded)
-    rr.load = lambda n, _r=rr: _load_stub(_r, n)
+    # stand-in for the real Agent-building load(); the signature is intentionally looser
+    rr.load = lambda n, _r=rr: _load_stub(_r, n)  # pyright: ignore[reportAttributeAccessIssue]
     return rr
 
 

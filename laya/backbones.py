@@ -30,7 +30,7 @@ effect; if you serve causal LFM2 models, do it in another process.
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, Optional, Union
+from typing import Any, Dict, Optional, Union, cast
 
 import torch
 import torch.nn as nn
@@ -52,14 +52,18 @@ class LayaBackbone(nn.Module, ABC):
     by as_backbone/lfm2_backbone, is the only key the bare encoder does not have.
     """
 
+    # Every HF PretrainedModel carries its config; the concrete type varies per
+    # architecture, so the contract only promises that it is there.
+    config: Any
+
     @property
     def hidden_size(self) -> int:
         """Width of the hidden states forward() returns (after any projection)."""
-        proj = self._modules.get("head_proj")
-        return proj.out_features if proj is not None else self.config.hidden_size
+        proj = cast(Optional[nn.Linear], self._modules.get("head_proj"))
+        return proj.out_features if proj is not None else int(self.config.hidden_size)
 
     def _apply_head_proj(self, h: torch.Tensor) -> torch.Tensor:
-        proj = self._modules.get("head_proj")
+        proj = cast(Optional[nn.Linear], self._modules.get("head_proj"))
         return proj(h) if proj is not None else h
 
     @abstractmethod
@@ -89,7 +93,7 @@ def hidden_states_of(output) -> torch.Tensor:
     return output if torch.is_tensor(output) else output.last_hidden_state
 
 
-def _attach_projection(encoder: nn.Module, head_dim: Optional[int]) -> None:
+def _attach_projection(encoder: LayaBackbone, head_dim: Optional[int]) -> None:
     """Attach head_proj when head_dim asks for a width the encoder does not natively produce."""
     if head_dim is not None and head_dim != encoder.config.hidden_size:
         encoder.head_proj = nn.Linear(encoder.config.hidden_size, head_dim)
@@ -137,8 +141,9 @@ def as_backbone(encoder: nn.Module, head_dim: Optional[int] = None) -> LayaBackb
     Linear that projects hidden states for a fixed-width decision head.
     """
     encoder.__class__ = _hf_backbone_class(type(encoder))
-    _attach_projection(encoder, head_dim)
-    return encoder
+    backbone = cast(LayaBackbone, encoder)  # the class swap above is what makes this true
+    _attach_projection(backbone, head_dim)
+    return backbone
 
 
 # --------------------------------------------------------------------------------------
@@ -153,7 +158,8 @@ def _import_lfm2():
     try:
         from transformers.models.lfm2 import modeling_lfm2 as module
 
-        module.Lfm2Model, module.Lfm2Attention, module.Lfm2ShortConv  # attribute smoke test
+        for _attr in ("Lfm2Model", "Lfm2Attention", "Lfm2ShortConv"):
+            getattr(module, _attr)  # smoke test: older transformers lacks some of these
         return module
     except (ImportError, AttributeError) as e:
         raise ImportError(
@@ -197,6 +203,7 @@ def _install_lfm2_patches(module) -> None:
                 return attention_mask
             return None
 
+        assert input_embeds is not None  # transformers always passes the embeds here
         device, dtype = input_embeds.device, input_embeds.dtype
         bsz, q_len = input_embeds.shape[:2]
         past = past_key_values.get_seq_length() if past_key_values is not None else 0
@@ -268,7 +275,9 @@ def _lfm2_backbone_class() -> type:
                     if isinstance(m, module.Lfm2Attention):
                         m.is_causal = False
 
-            def forward(self, input_ids=None, attention_mask=None, **kwargs):
+            # Deliberately narrower than Lfm2Model.forward's 19-parameter signature: the
+            # backbone contract only ever passes ids + mask, and kwargs absorb the rest.
+            def forward(self, input_ids=None, attention_mask=None, **kwargs):  # pyright: ignore[reportIncompatibleMethodOverride]
                 out = super().forward(input_ids=input_ids, attention_mask=attention_mask, use_cache=False, **kwargs)
                 return self._apply_head_proj(hidden_states_of(out))
 
@@ -311,7 +320,7 @@ def lfm2_backbone(
         if attn is not None:
             # The same hook from_pretrained uses; without it the from-config path
             # (every Agent checkpoint load) would silently run eager attention.
-            model_id_or_config._attn_implementation = attn
+            cast(Any, model_id_or_config)._attn_implementation = attn
         enc = cls(model_id_or_config)
     _attach_projection(enc, head_dim)
     return enc

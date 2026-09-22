@@ -3,7 +3,7 @@
 import json
 import math
 import os
-from typing import Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 import torch
@@ -37,9 +37,11 @@ def render_options(q: Dict) -> List[str]:
     """Render option texts in label-index order. Noul is always [false, true]."""
     t, crit = q["t"], q.get("crit")
     if t == "choice":
+        assert isinstance(crit, dict)
         # only None/"" mean "no description"; 0 and False are legitimate criterion values
         return [k if v is None or v == "" else "%s: %s" % (k, render_criterion(v)) for k, v in crit.items()]
     if t == "score":
+        assert isinstance(crit, list)
         return ["level %d: %s" % (i, render_criterion(c)) for i, c in enumerate(crit)]
     crit = crit or {}
     false_crit, true_crit = crit.get("false"), crit.get("true")
@@ -92,7 +94,9 @@ def build_sequence(
 class DecisionModel(nn.Module):
     """Bidirectional transformer encoder backbone + typed decision head."""
 
-    def __init__(self, encoder: nn.Module, head_layers: int = 2, n_act: int = 2, dropout: float = 0.1):
+    def __init__(
+        self, encoder: Union[nn.Module, LayaBackbone], head_layers: int = 2, n_act: int = 2, dropout: float = 0.1
+    ):
         super().__init__()
         # One normalization point: every encoder a DecisionModel hosts is rebound onto
         # the LayaBackbone contract (in place, state_dict keys untouched), so the head
@@ -100,7 +104,7 @@ class DecisionModel(nn.Module):
         # isinstance guard matters: re-applying as_backbone would double-attach head_proj.
         if not isinstance(encoder, LayaBackbone):
             encoder = as_backbone(encoder)
-        self.encoder = encoder
+        self.encoder: LayaBackbone = encoder
         d = encoder.hidden_size  # post-projection width when a head_proj was attached
         nhead = max(1, d // 64)
         layer = nn.TransformerEncoderLayer(d, nhead, 4 * d, dropout, batch_first=True, norm_first=True)
@@ -272,7 +276,7 @@ def amp_dtype(name: Optional[str]) -> torch.dtype:
     return torch.bfloat16 if name == "bf16" else torch.float16
 
 
-def collate_items(batch, pad_id: int):
+def collate_items(batch, pad_id: int) -> Optional[Dict[str, Any]]:
     items = [it for group in batch for it in group]
     if not items:
         return None
@@ -291,7 +295,7 @@ def collate_items(batch, pad_id: int):
         k = len(it["markers"])
         mpos[i, :k] = torch.tensor(it["markers"])
         mmask[i, :k] = True
-        if has_target and "target" in it:
+        if "target" in it and target is not None:
             target[i, : len(it["target"])] = torch.tensor(it["target"], dtype=torch.float32)
 
     res = {

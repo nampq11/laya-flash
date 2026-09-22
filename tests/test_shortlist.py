@@ -38,7 +38,7 @@ def check_true(name, cond, detail=""):
         FAIL.append("%s %s" % (name, detail))
 
 
-def check_raises(name, fn, exc=ValueError):
+def check_raises(name, fn, exc: type[Exception] = ValueError):
     try:
         fn()
     except exc:
@@ -344,7 +344,7 @@ check(
 # ---------------------------------------------------------------- system_one-only agent
 class SystemOneOnly:
     def __init__(self):
-        self.questions = None
+        self.questions = {}  # recorded by system_one
 
     def system_one(self, state, questions):
         self.questions = questions
@@ -361,8 +361,8 @@ check("system_one/criteria length is k", len(only.questions["intent"]["criteria"
 check_raises("err/k=0", lambda: shortlist_choice("pay me", CRITERIA, embed, k=0))
 check_raises("err/k negative", lambda: shortlist_choice("pay me", CRITERIA, embed, k=-3))
 check_raises("err/k bool", lambda: shortlist_choice("pay me", CRITERIA, embed, k=True))
-check_raises("err/k float", lambda: shortlist_choice("pay me", CRITERIA, embed, k=1.5))
-check_raises("err/k str", lambda: shortlist_choice("pay me", CRITERIA, embed, k="2"))
+check_raises("err/k float", lambda: shortlist_choice("pay me", CRITERIA, embed, k=1.5))  # pyright: ignore[reportArgumentType]
+check_raises("err/k str", lambda: shortlist_choice("pay me", CRITERIA, embed, k="2"))  # pyright: ignore[reportArgumentType]
 check_raises("err/empty dict", lambda: shortlist_choice("pay me", {}, embed, k=1))
 check_raises("err/empty list", lambda: shortlist_choice("pay me", [], embed, k=1))
 check_raises("err/criteria tuple", lambda: shortlist_choice("pay me", ("alpha", "beta"), embed, k=1), TypeError)
@@ -371,7 +371,7 @@ check_raises(
     "err/missing criteria",
     lambda: predict_shortlist(Recorder(), "pay me", {"intent": {"type": "choice"}}, embed, k=1),
 )
-check_raises("err/questions not a dict", lambda: predict_shortlist(Recorder(), "pay me", [], embed, k=1), TypeError)
+check_raises("err/questions not a dict", lambda: predict_shortlist(Recorder(), "pay me", [], embed, k=1), TypeError)  # pyright: ignore[reportArgumentType]
 
 
 def _bad_shape(texts):
@@ -422,7 +422,7 @@ class TinyEncoder(torch.nn.Module):
 
 class TinyTok:
     def __init__(self):
-        self.kwargs = None
+        self.kwargs = {}  # recorded by __call__
         self.batches = []
 
     def __call__(self, texts, padding=True, truncation=True, max_length=256, return_tensors="pt"):

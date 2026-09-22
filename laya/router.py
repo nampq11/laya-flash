@@ -30,7 +30,7 @@ synthetic workflows and should not be a silent default.
 
 import os
 import threading
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 from .lang import analyse
 
@@ -56,11 +56,12 @@ def _repo_str(spec):
     return "%s/%s" % (repo, sub) if sub else repo
 
 
-def _split(spec):
+def _split(spec: Union[str, Tuple[str, Optional[str]], List[Optional[str]]]) -> Tuple[str, Optional[str]]:
     """Normalise a model spec to (repo_or_path, subfolder)."""
     if isinstance(spec, (tuple, list)):
         repo, sub = (list(spec) + [None])[:2]
-        return repo, sub
+        # A spec list shorter than two entries pads with None, so repo stays a string.
+        return cast(str, repo), sub
     return spec, None
 
 

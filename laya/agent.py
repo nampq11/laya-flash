@@ -307,6 +307,10 @@ class Agent:
             items.append({"ids": seq, "markers": markers, "qtype": QTYPES[q["t"]]})
 
         b = collate_items([items], self.tok.pad_token_id)
+        if b is None:
+            # collate_items returns None only for an empty batch; say so instead of
+            # letting the first b["input_ids"] subscript crash with a TypeError.
+            raise ValueError("questions must contain at least one question")
         use_amp = self.device.type == "cuda"
 
         try:

@@ -75,6 +75,7 @@ def main():
     item["ids"], item["markers"] = ids, markers
     assert len(markers) == 3 and all(ids[m] == tok.mask_token_id for m in markers)
     batch = collate_items([[item]], tok.pad_token_id)
+    assert batch is not None  # the batch above has exactly one item
     with torch.no_grad():
         logits, act_logits = model(
             batch["input_ids"], batch["attention_mask"], batch["marker_pos"], batch["marker_mask"], batch["qtype"]

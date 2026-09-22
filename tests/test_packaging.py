@@ -31,7 +31,7 @@ def read(name):
         return f.read()
 
 
-def version_tuple(text):
+def version_tuple(text) -> tuple[int, ...]:
     return tuple(int(part) for part in text.split("."))
 
 
@@ -65,7 +65,7 @@ check_true(
 backbones_src = read(os.path.join("laya", "backbones.py"))
 lfm2_min = re.search(r'_LFM2_MIN_TRANSFORMERS\s*=\s*"([\d.]+)"', backbones_src)
 check_true("backbones/declares the lfm2 transformers floor", lfm2_min is not None)
-lfm2_floor = version_tuple(lfm2_min.group(1)) if lfm2_min else (0, 0)
+lfm2_floor = version_tuple(lfm2_min.group(1) if lfm2_min else "0")
 check_true(
     "backbones/lfm2 floor covers native lfm2",
     lfm2_min is not None and lfm2_floor >= (4, 55),

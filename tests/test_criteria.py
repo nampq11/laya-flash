@@ -23,7 +23,7 @@ def check(name, got, want):
         FAIL.append("%s:\n     got  %r\n     want %r" % (name, got, want))
 
 
-def check_true(name, cond, detail=""):
+def check_true(name, cond, detail: object = ""):
     if cond:
         PASS.append(name)
     else:

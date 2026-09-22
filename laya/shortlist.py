@@ -16,7 +16,7 @@ report; this module does not measure them.
 """
 
 import json
-from typing import Any, Callable, Dict, List, Optional, Sequence
+from typing import Any, Callable, Dict, List, Optional, Sequence, cast
 
 import numpy as np
 
@@ -229,7 +229,10 @@ def _embeddings(embed_fn, texts: Sequence[str]) -> np.ndarray:
         raise TypeError("embed_fn must be callable")
     raw = embed_fn(list(texts))
     if hasattr(raw, "detach"):
-        raw = raw.detach().float().cpu().numpy()
+        # duck-typed torch tensor from embed_fns built around model encoders
+        import torch
+
+        raw = cast(torch.Tensor, raw).detach().float().cpu().numpy()
     arr = np.asarray(raw, dtype=np.float64)
     if arr.ndim != 2 or arr.shape[0] != len(texts) or arr.shape[1] < 1:
         raise ValueError("embed_fn must return an array of shape (%d, dim), got %s" % (len(texts), tuple(arr.shape)))

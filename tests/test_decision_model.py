@@ -69,6 +69,7 @@ def test_single_option_top1_minus_top2_is_exactly_one():
         h = model.encoder(input_ids=input_ids, attention_mask=attention_mask)
         h = h + model.type_emb(qtype)[:, None, :]
         pad = ~attention_mask.bool()
+        assert model.head is not None  # _tiny_model builds with head_layers=2
         for layer in model.head.layers:
             h = layer(h, src_key_padding_mask=pad)
         idx = marker_pos.clamp(min=0)[:, :, None].expand(-1, -1, h.size(-1))
