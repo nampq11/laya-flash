@@ -1,0 +1,114 @@
+{
+  "meta": {
+    "timestamp": "2026-09-22 14:44:20",
+    "device": "cuda",
+    "torch": "2.14.0+cu130",
+    "laya": "0.4.0",
+    "model": "/home/nampq/projects/experiments/laya-flash/out/lfm2-ported-td",
+    "n_cases": 400
+  },
+  "reference_points": {
+    "same_head_own_encoder": {
+      "accuracy": 0.766,
+      "source": "measured, research/results (t4 colab + app benchmarks)"
+    },
+    "per_question_majority_class": {
+      "accuracy": 0.461
+    },
+    "random_guess": {
+      "accuracy": 0.3175
+    },
+    "note": "reference points from bench_local.py part B, identical questions and scoring"
+  },
+  "metrics": {
+    "n": 2000,
+    "accuracy": 0.3555,
+    "macro_f1": 0.2923,
+    "ece": 0.0332,
+    "brier": 0.6805,
+    "nll": 1.2076,
+    "mean_confidence": 0.3223,
+    "acc_at_50_coverage": 0.412,
+    "soft_accuracy": 0.3183,
+    "brier_vs_soft": 0.2368,
+    "score_mae": 0.6993,
+    "within_1_level": 0.7338,
+    "seconds": 281.4,
+    "dropped": 0,
+    "ms_per_case": 703.5,
+    "by_workflow": {
+      "agent_trace_observability": {
+        "n": 500,
+        "accuracy": 0.314,
+        "macro_f1": 0.2508,
+        "ece": 0.03,
+        "brier": 0.7013,
+        "nll": 1.2501,
+        "mean_confidence": 0.3051,
+        "acc_at_50_coverage": 0.348
+      },
+      "customer_service": {
+        "n": 500,
+        "accuracy": 0.402,
+        "macro_f1": 0.3259,
+        "ece": 0.1172,
+        "brier": 0.716,
+        "nll": 1.3287,
+        "mean_confidence": 0.2848,
+        "acc_at_50_coverage": 0.44
+      },
+      "invoice_processing": {
+        "n": 500,
+        "accuracy": 0.34,
+        "macro_f1": 0.2345,
+        "ece": 0.1271,
+        "brier": 0.6505,
+        "nll": 1.1095,
+        "mean_confidence": 0.3539,
+        "acc_at_50_coverage": 0.332
+      },
+      "security_incidents": {
+        "n": 500,
+        "accuracy": 0.366,
+        "macro_f1": 0.2595,
+        "ece": 0.0807,
+        "brier": 0.6543,
+        "nll": 1.1422,
+        "mean_confidence": 0.3454,
+        "acc_at_50_coverage": 0.512
+      }
+    },
+    "by_question_type": {
+      "choice": {
+        "n": 600,
+        "accuracy": 0.325,
+        "macro_f1": 0.2839,
+        "ece": 0.0857,
+        "brier": 0.7646,
+        "nll": 1.456,
+        "mean_confidence": 0.2393,
+        "acc_at_50_coverage": 0.2733
+      },
+      "noul": {
+        "n": 600,
+        "accuracy": 0.505,
+        "macro_f1": 0.3385,
+        "ece": 0.0026,
+        "brier": 0.4994,
+        "nll": 0.6925,
+        "mean_confidence": 0.5024,
+        "acc_at_50_coverage": 0.6
+      },
+      "score": {
+        "n": 800,
+        "accuracy": 0.2662,
+        "macro_f1": 0.1601,
+        "ece": 0.0168,
+        "brier": 0.7533,
+        "nll": 1.4077,
+        "mean_confidence": 0.2495,
+        "acc_at_50_coverage": 0.3125
+      }
+    }
+  }
+}

@@ -218,12 +218,9 @@ def run_part_a(results, langs, per_lang):
 
 
 # ------------------------------------------------------------------ part B
-def build_typed_decisions():
-    import pandas as pd
-    p = os.path.join(REPO, "typed-decisions", "all", "test-00000-of-00001.parquet")
-    df = pd.read_parquet(p)
+def parse_typed_decisions_rows(rows):
     cases, gold, wfs = [], [], []
-    for _, r in df.iterrows():
+    for r in rows:
         qs = json.loads(r["questions"]); g = json.loads(r["gold"])
         st = r["state"]
         try:
@@ -249,6 +246,45 @@ def build_typed_decisions():
     return cases, gold, wfs
 
 
+def build_typed_decisions():
+    import pandas as pd
+    p = os.path.join(REPO, "typed-decisions", "all", "test-00000-of-00001.parquet")
+    return parse_typed_decisions_rows(pd.read_parquet(p).to_dict("records"))
+
+
+def typed_decisions_metrics(agent, cases, gold, wfs, tag=""):
+    """Score a checkpoint on typed-decisions and return the full part-B metric dict."""
+    lgs, idx, secs, dropped = score_cases(agent, cases, tag=tag)
+    rows, soft, brier_s, mae, w1, by_wf, by_qt = [], [], [], [], [], {}, {}
+    for (ci, qid, qt, k), z in zip(idx, lgs):
+        g = gold[ci][qid]
+        if z is None:
+            rows.append((g["idx"], None)); continue
+        p = softmax_t(z, temp_for(agent, qt, k))
+        rows.append((g["idx"], p))
+        by_wf.setdefault(wfs[ci], []).append((g["idx"], p))
+        by_qt.setdefault({0: "choice", 1: "score", 2: "noul"}[qt], []).append((g["idx"], p))
+        gp = np.asarray(g["soft"], float)
+        if gp.sum() > 0:
+            gp = gp / gp.sum()
+            pp = p[:len(gp)] if len(p) >= len(gp) else np.pad(p, (0, len(gp) - len(p)))
+            pp = pp / max(pp.sum(), 1e-12)
+            soft.append(float((pp * gp).sum())); brier_s.append(float(((pp - gp) ** 2).sum()))
+        if "gold_score" in g:
+            exp = float((np.arange(len(p)) * p).sum())
+            mae.append(abs(exp - g["gold_score"])); w1.append(float(abs(exp - g["gold_score"]) <= 1))
+    m = metrics(rows)
+    m.update(soft_accuracy=round(float(np.mean(soft)), 4) if soft else None,
+             brier_vs_soft=round(float(np.mean(brier_s)), 4) if brier_s else None,
+             score_mae=round(float(np.mean(mae)), 4) if mae else None,
+             within_1_level=round(float(np.mean(w1)), 4) if w1 else None,
+             seconds=round(secs, 1), dropped=dropped,
+             ms_per_case=round(1000 * secs / len(cases), 1),
+             by_workflow={k: metrics(v) for k, v in sorted(by_wf.items())},
+             by_question_type={k: metrics(v) for k, v in sorted(by_qt.items())})
+    return m
+
+
 def run_part_b(results):
     print("\n=== PART B: typed-decisions, 400 cases / 2,000 decisions, all 3 checkpoints ===\n",
           flush=True)
@@ -268,34 +304,7 @@ def run_part_b(results):
     for mname in ("english", "multilingual", "typed-decisions"):
         print("--- %s ---" % mname, flush=True)
         ag = load(mname)
-        lgs, idx, secs, dropped = score_cases(ag, cases, tag=mname)
-        rows, soft, brier_s, mae, w1, by_wf, by_qt = [], [], [], [], [], {}, {}
-        for (ci, qid, qt, k), z in zip(idx, lgs):
-            g = gold[ci][qid]
-            if z is None:
-                rows.append((g["idx"], None)); continue
-            p = softmax_t(z, temp_for(ag, qt, k))
-            rows.append((g["idx"], p))
-            by_wf.setdefault(wfs[ci], []).append((g["idx"], p))
-            by_qt.setdefault({0: "choice", 1: "score", 2: "noul"}[qt], []).append((g["idx"], p))
-            gp = np.asarray(g["soft"], float)
-            if gp.sum() > 0:
-                gp = gp / gp.sum()
-                pp = p[:len(gp)] if len(p) >= len(gp) else np.pad(p, (0, len(gp) - len(p)))
-                pp = pp / max(pp.sum(), 1e-12)
-                soft.append(float((pp * gp).sum())); brier_s.append(float(((pp - gp) ** 2).sum()))
-            if "gold_score" in g:
-                exp = float((np.arange(len(p)) * p).sum())
-                mae.append(abs(exp - g["gold_score"])); w1.append(float(abs(exp - g["gold_score"]) <= 1))
-        m = metrics(rows)
-        m.update(soft_accuracy=round(float(np.mean(soft)), 4) if soft else None,
-                 brier_vs_soft=round(float(np.mean(brier_s)), 4) if brier_s else None,
-                 score_mae=round(float(np.mean(mae)), 4) if mae else None,
-                 within_1_level=round(float(np.mean(w1)), 4) if w1 else None,
-                 seconds=round(secs, 1), dropped=dropped,
-                 ms_per_case=round(1000 * secs / len(cases), 1),
-                 by_workflow={k: metrics(v) for k, v in sorted(by_wf.items())},
-                 by_question_type={k: metrics(v) for k, v in sorted(by_qt.items())})
+        m = typed_decisions_metrics(ag, cases, gold, wfs, tag=mname)
         results["part_b"]["by_model"][mname] = m
         print("   acc %.4f | soft %.4f | brier(soft) %s | ECE %.4f | MAE %s | %.0f ms/case"
               % (m["accuracy"], m["soft_accuracy"] or 0, m["brier_vs_soft"], m["ece"],
