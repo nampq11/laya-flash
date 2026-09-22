@@ -58,6 +58,10 @@ select = ["E4", "E7", "E9", "F", "I"]
 # notebooks/ are exploratory and pull optional deps (datasets, ...), so type
 # checking them would flag imports CI never exercises.
 include = ["laya", "tests", "setup.py"]
+# Explicit standard mode: Zed's basedpyright defaults to a much stricter mode
+# whose reportAny/reportUnknown*/reportMissingParameterType rules drown the
+# signal in warnings on an intentionally-untyped codebase.
+typeCheckingMode = "standard"
 
 [project.urls]
 Homepage = "https://huggingface.co/convaiinnovations/laya"
